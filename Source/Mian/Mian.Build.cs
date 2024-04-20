@@ -7,8 +7,24 @@ public class Mian : ModuleRules
 	public Mian(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		
+		PublicIncludePaths.AddRange(
+			new string[] {
+				"Mian"
+			}
+		);
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"Core",
+				"CoreUObject", 
+				"Engine", 
+				"InputCore",
+				"GameplayTags",
+				"GameplayTasks",
+				"GameplayAbilities"
+			});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

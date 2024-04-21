@@ -16,13 +16,8 @@ local M = UnLua.Class()
 -- function M:UserConstructionScript()
 -- end
 
-function M:ReceiveBeginPlay()
-    local msg = [[
-    Lua!
-    ]]
-    print(msg)
-    Screen.Print(msg)
-end
+-- function M:ReceiveBeginPlay()
+-- end
 
 -- function M:ReceiveEndPlay()
 -- end

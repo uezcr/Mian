@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "7DY8VQ8pC6AIzKd5RF2Gy4H1HqgO0nRcLp5D0dwYpK0zYOD/vgJqMon35CXyxsF6iPTcyjhqx5lAeSji0LCf9w==",
+  "dgSpecHash": "8ITLAN89ehXrL1NdIOnVpyCrHNsviFyC/6T+lLHQ/cWKypK/VPYnstGY+WyKV7j3iJlqh7RCf7zx25v8PSKNsg==",
   "success": true,
-  "projectFilePath": "D:\\MianGame\\Plugins\\UnLua\\Source\\UnLuaDefaultParamCollectorUbtPlugin\\UnLuaDefaultParamCollectorUbtPlugin.ubtplugin.csproj",
+  "projectFilePath": "E:\\Mian\\Plugins\\UnLua\\Source\\UnLuaDefaultParamCollectorUbtPlugin\\UnLuaDefaultParamCollectorUbtPlugin.ubtplugin.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\Tank\\.nuget\\packages\\microsoft.csharp\\4.7.0\\microsoft.csharp.4.7.0.nupkg.sha512"
+    "C:\\Users\\86184\\.nuget\\packages\\microsoft.csharp\\4.7.0\\microsoft.csharp.4.7.0.nupkg.sha512"
   ],
   "logs": []
 }

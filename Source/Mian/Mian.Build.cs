@@ -23,10 +23,50 @@ public class Mian : ModuleRules
 				"InputCore",
 				"GameplayTags",
 				"GameplayTasks",
-				"GameplayAbilities"
+				"GameplayAbilities",
+				"AIModule",
+				"ModularGameplay",
+				"ModularGameplayActors",
+				"DataRegistry",
+				"ReplicationGraph",
+				"SignificanceManager",
+				"Hotfix",
+				"CommonLoadingScreen",
+				"Niagara",
+				"AsyncMixin",
+				"ControlFlows",
+				"PropertyPath"
 			});
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"InputCore",
+				"Slate",
+				"SlateCore",
+				"RenderCore",
+				"DeveloperSettings",
+				"EnhancedInput",
+				"NetCore",
+				"RHI",
+				"Projects",
+				"Gauntlet",
+				"UMG",
+				"CommonUI",
+				"CommonInput",
+				"GameSettings",
+				"CommonGame",
+				"CommonUser",
+				"GameSubtitles",
+				"GameplayMessageRuntime",
+				"AudioMixer",
+				"NetworkReplayStreaming",
+				"UIExtension",
+				"ClientPilot",
+				"AudioModulation",
+				"EngineSettings",
+				"DTLSHandlerComponent"
+			}
+		);
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

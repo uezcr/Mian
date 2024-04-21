@@ -7,7 +7,20 @@
 		{
 			"Name": "Mian",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"ModularGameplayActors",
+				"EnhancedInput",
+				"CommonGame",
+				"ModularGameplay",
+				"GameplayAbilities",
+				"CommonUI",
+				"GameFeatures",
+				"Hotfix",
+				"DeveloperSettings",
+				"CoreUObject"
+			]
 		}
 	],
 	"Plugins": [
@@ -20,6 +33,150 @@
 		},
 		{
 			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonLoadingScreen",
+			"Enabled": true
+		},
+		{
+			"Name": "ModularGameplay",
+			"Enabled": true
+		},
+		{
+			"Name": "ModularGameplayActors",
+			"Enabled": true
+		},
+		{
+			"Name": "EnhancedInput",
+			"Enabled": true
+		},
+		{
+			"Name": "WinDualShock",
+			"Enabled": true,
+			"SupportedTargetPlatforms": [
+				"Win64"
+			]
+		},
+		{
+			"Name": "Niagara",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonUI",
+			"Enabled": true
+		},
+		{
+			"Name": "GameSettings",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonUser",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonGame",
+			"Enabled": true
+		},
+		{
+			"Name": "GameSubtitles",
+			"Enabled": true
+		},
+		{
+			"Name": "UIExtension",
+			"Enabled": true
+		},
+		{
+			"Name": "Metasound",
+			"Enabled": true
+		},
+		{
+			"Name": "TempestCombatFramework",
+			"Enabled": false,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/15eff4da8e8348a18a82212ead7e1c46"
+		},
+		{
+			"Name": "GameplayMessageRouter",
+			"Enabled": true
+		},
+		{
+			"Name": "ControlFlows",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayStateTree",
+			"Enabled": true
+		},
+		{
+			"Name": "Water",
+			"Enabled": true
+		},
+		{
+			"Name": "AsyncMixin",
+			"Enabled": true
+		},
+		{
+			"Name": "DTLSHandlerComponent",
+			"Enabled": true
+		},
+		{
+			"Name": "Gauntlet",
+			"Enabled": true
+		},
+		{
+			"Name": "DataRegistry",
+			"Enabled": true
+		},
+		{
+			"Name": "SignificanceManager",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayInteractions",
+			"Enabled": true
+		},
+		{
+			"Name": "SmartObjects",
+			"Enabled": true
+		},
+		{
+			"Name": "ContextualAnimation",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayBehaviorSmartObjects",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayBehaviors",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayInsights",
+			"Enabled": true
+		},
+		{
+			"Name": "AnimationLocomotionLibrary",
+			"Enabled": true
+		},
+		{
+			"Name": "AudioModulation",
+			"Enabled": true
+		},
+		{
+			"Name": "AudioGameplayVolume",
+			"Enabled": true
+		},
+		{
+			"Name": "AudioGameplay",
+			"Enabled": true
+		},
+		{
+			"Name": "SoundUtilities",
+			"Enabled": true
+		},
+		{
+			"Name": "AnimationWarping",
 			"Enabled": true
 		}
 	]

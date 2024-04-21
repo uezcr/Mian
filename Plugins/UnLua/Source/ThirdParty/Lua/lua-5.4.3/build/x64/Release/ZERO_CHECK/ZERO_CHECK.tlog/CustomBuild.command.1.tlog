@@ -1,0 +1,10 @@
+^E:\MIAN\PLUGINS\UNLUA\SOURCE\THIRDPARTY\LUA\LUA-5.4.3\BUILD\CMAKEFILES\AB6A1F913D54BD6C122151628FB35343\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SE:/Mian/Plugins/UnLua/Source/ThirdParty/Lua -BE:/Mian/Plugins/UnLua/Source/ThirdParty/Lua/lua-5.4.3/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file E:/Mian/Plugins/UnLua/Source/ThirdParty/Lua/lua-5.4.3/build/Lua.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

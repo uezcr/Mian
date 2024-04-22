@@ -76,6 +76,7 @@ DerivedDataCache/*
 Plugins/Developer
 Intermediate
 Content/Art
+Content/Asset
 
 .vscode
 .vs

@@ -45,6 +45,19 @@ namespace MGameplayTags
 	// When extending Lyra, you can create your own movement modes but you need to update GetCustomMovementModeTagMap()
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Movement_Mode_Custom, "Movement.Mode.Custom", "This is invalid and should be replaced with custom tags.  See LyraGameplayTags::CustomMovementModeTagMap.");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_InventorySlot, "Inventory.Slot.InventorySlot", "库存插槽");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Headphone, "Inventory.Slot.Headphone", "耳机");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Head, "Inventory.Slot.Head", "头");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Body, "Inventory.Slot.Body", "身体");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Pants, "Inventory.Slot.Pants", "裤子");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Weapon, "Inventory.Slot.Weapon", "武器");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Backpack, "Inventory.Slot.Backpack", "背包");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Vest, "Inventory.Slot.Vest", "防弹背心");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Hand, "Inventory.Slot.Hand", "手");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Shoes, "Inventory.Slot.Shoes", "鞋子");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_CarFront, "Inventory.Slot.CarFront", "汽车（前盖）");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_CarTop, "Inventory.Slot.CarTop", "汽车（车尾）");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_CarLight, "Inventory.Slot.CarLight", "汽车（灯）");
 	// Unreal Movement Modes
 	const TMap<uint8, FGameplayTag> MovementModeTagMap =
 	{

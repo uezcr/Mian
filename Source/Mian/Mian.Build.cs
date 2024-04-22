@@ -20,6 +20,7 @@ public class Mian : ModuleRules
 				"Core",
 				"CoreUObject", 
 				"Engine", 
+				"PhysicsCore",
 				"InputCore",
 				"GameplayTags",
 				"GameplayTasks",
@@ -67,6 +68,8 @@ public class Mian : ModuleRules
 				"DTLSHandlerComponent"
 			}
 		);
+		SetupGameplayDebuggerSupport(Target);
+		SetupIrisSupport(Target);
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

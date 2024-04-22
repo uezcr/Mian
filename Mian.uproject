@@ -178,6 +178,22 @@
 		{
 			"Name": "AnimationWarping",
 			"Enabled": true
+		},
+		{
+			"Name": "LuaProtobuf",
+			"Enabled": false
+		},
+		{
+			"Name": "LuaRapidjson",
+			"Enabled": false
+		},
+		{
+			"Name": "LuaSocket",
+			"Enabled": false
+		},
+		{
+			"Name": "UnLua",
+			"Enabled": false
 		}
 	]
 }

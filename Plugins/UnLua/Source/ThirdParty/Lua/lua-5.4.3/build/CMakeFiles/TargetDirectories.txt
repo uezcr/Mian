@@ -1,3 +1,0 @@
-E:/Mian/Plugins/UnLua/Source/ThirdParty/Lua/lua-5.4.3/build/CMakeFiles/Lua.dir
-E:/Mian/Plugins/UnLua/Source/ThirdParty/Lua/lua-5.4.3/build/CMakeFiles/ALL_BUILD.dir
-E:/Mian/Plugins/UnLua/Source/ThirdParty/Lua/lua-5.4.3/build/CMakeFiles/ZERO_CHECK.dir

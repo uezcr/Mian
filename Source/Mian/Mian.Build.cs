@@ -26,7 +26,7 @@ public class Mian : ModuleRules
 				"GameplayTasks",
 				"GameplayAbilities",
 				"AIModule",
-				"ModularGameplay",
+				"ModularGameplay", 
 				"ModularGameplayActors",
 				"DataRegistry",
 				"ReplicationGraph",
@@ -65,7 +65,9 @@ public class Mian : ModuleRules
 				"ClientPilot",
 				"AudioModulation",
 				"EngineSettings",
-				"DTLSHandlerComponent"
+				"DTLSHandlerComponent", 
+				"GameplayStateTreeModule",
+				"StateTreeModule"
 			}
 		);
 		SetupGameplayDebuggerSupport(Target);

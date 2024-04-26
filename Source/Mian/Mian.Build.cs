@@ -20,12 +20,13 @@ public class Mian : ModuleRules
 				"Core",
 				"CoreUObject", 
 				"Engine", 
+				"PhysicsCore",
 				"InputCore",
 				"GameplayTags",
 				"GameplayTasks",
 				"GameplayAbilities",
 				"AIModule",
-				"ModularGameplay",
+				"ModularGameplay", 
 				"ModularGameplayActors",
 				"DataRegistry",
 				"ReplicationGraph",
@@ -64,9 +65,13 @@ public class Mian : ModuleRules
 				"ClientPilot",
 				"AudioModulation",
 				"EngineSettings",
-				"DTLSHandlerComponent"
+				"DTLSHandlerComponent", 
+				"GameplayStateTreeModule",
+				"StateTreeModule"
 			}
 		);
+		SetupGameplayDebuggerSupport(Target);
+		SetupIrisSupport(Target);
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

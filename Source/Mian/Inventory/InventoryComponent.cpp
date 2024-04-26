@@ -2,17 +2,20 @@
 
 #include "InventoryComponent.h"
 #include "InventoryLibrary.h"
+#include "DataAsset/InventoryData.h"
 #include "Engine/World.h"
-#include "NativeGameplayTags.h"
 #include "DataAsset/ItemContainersData.h"
 #include "Equipment/EquipmentDefinition.h"
 #include "GameMode/MGameMode.h"
 #include "Interface/Interactable.h"
-#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Physics/MCollisionChannel.h"
+#include "Pickup/PickupBase.h"
+#include "UI/MHUD.h"
+#include "UI/Inventory/InventoryScreen.h"
+#include "UI/Inventory/Pickup/PickupDisplay.h"
 
-
+#pragma optimize("",off)
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryComponent)
 
 UInventoryComponent::UInventoryComponent(const FObjectInitializer& ObjectInitializer)
@@ -32,18 +35,19 @@ void UInventoryComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	//就服务器执行,在内部判断了
+	ServerInitInventory();
 
-	OwnerPawn = Cast<APawn>(GetOwner());
-	if (OwnerPawn && GetOwnerRole()==ROLE_AutonomousProxy)
+	if (GetOwner<APawn>() && GetOwner<APawn>()->IsLocallyControlled())
 	{
+		InventoryScreen = CreateWidget<UInventoryScreen>(GetOwner<APawn>()->GetController<APlayerController>(),InventoryScreenClass);
 		GetWorld()->GetTimerManager().SetTimer(ClientTraceHandle,this,&UInventoryComponent::ClientTrace,TraceDelta,true);
 	}
 }
 
-
 void UInventoryComponent::ClientTrace()
 {
-	APlayerController*PC = OwnerPawn->GetLocalViewingPlayerController();
+	APlayerController*PC = GetOwner<APawn>()->GetLocalViewingPlayerController();
 	if(!PC)return;
 
 	FHitResult HitResult;
@@ -54,15 +58,18 @@ void UInventoryComponent::ClientTrace()
 	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(InteractionTrace), /*bTraceComplex=*/ true, /*IgnoreActor=*/ GetOwner());
 	GetWorld()->LineTraceSingleByChannel(HitResult,WorldPosition,TraceEndPosition,M_TraceChannel_Interaction,TraceParams);
 
-	if (HitResult.bBlockingHit && HitResult.GetActor() && HitResult.GetActor()!=TraceActor && HitResult.GetActor()->Implements<UInteractable>())
+	if (HitResult.bBlockingHit && HitResult.GetActor())
 	{
-		if(TraceActor)
+		if(TraceActor && HitResult.GetActor()!=TraceActor)
 		{
 			IInteractable::Execute_OnTraceLeave(TraceActor);
+			TraceActor=nullptr;
 		}
-		
-		TraceActor = HitResult.GetActor();
-		IInteractable::Execute_OnTraceEnter(TraceActor);
+		if(HitResult.GetActor()->Implements<UInteractable>())
+		{
+			TraceActor = HitResult.GetActor();
+			IInteractable::Execute_OnTraceEnter(TraceActor);
+		}
 	}else
 	{
 		if (TraceActor)
@@ -91,6 +98,11 @@ void UInventoryComponent::SetContainers(const TArray<FContainerInfo>& InContaine
 	Containers = InContainers;
 }
 
+void UInventoryComponent::ResetContainer()
+{
+	Containers.Empty();
+}
+
 bool UInventoryComponent::LoadSubItem(const FSubItemInfo& InSubItemInfo)
 {
 	FInventoryItem InventoryItem;
@@ -109,13 +121,182 @@ bool UInventoryComponent::LoadSubItem(const FSubItemInfo& InSubItemInfo)
 	UEquipmentDefinition* EquipmentDefinition = CreateItemData(InSubItemInfo.ItemID);
 	TArray<int32> OutAssignedUIds;
 	CreateItemContaines(InSubItemInfo.ItemID,OutAssignedUIds);
-	
-	//lzy TODO:未完成
+	FItemInfoDef ItemInfo = FItemInfoDef(InSubItemInfo.ItemID,bOutRotated,SurplusAmount,OutFoundSlotID,OutAssignedUIds,EquipmentDefinition);
+	SetItemOnContainer(ItemInfo,OutContainerUID,OutFoundSlotID);
+
 	return true;
 }
 
+void UInventoryComponent::Interactable(EInteractionType InInteractionType)
+{
+	if (TraceActor && GetOwner<APawn>()->IsLocallyControlled())
+	{
+		Server_Interactable(TraceActor,InInteractionType);
+	}
+}
+
+void UInventoryComponent::Server_Interactable_Implementation(AActor* InActor, EInteractionType InInteractionType)
+{
+	if (InActor)
+	{
+		IInteractable::Execute_OnInteract(InActor,GetOwner(),InInteractionType);
+	}
+}
+
+bool UInventoryComponent::PickupItem(APickupBase* InPickupBase)
+{
+	FItemInfoDef ItemInfoDef = InPickupBase->GetItemInfo();
+
+	Containers.Append(InPickupBase->GetInventoryComponent()->GetContainers());
+	TFunction<void(FFindResult FindResult)> FindFoundSpace = [&](FFindResult FindResult)
+	{
+		ItemInfoDef.bRotated = FindResult.bRotated;
+		ItemInfoDef.ItemAmount = FindResult.Amount;
+		SetItemOnContainer(ItemInfoDef,FindResult.ContainerUID,FindResult.SlotID);
+
+		if(bDebugMode)
+		{
+			FString StrLog = FString::Printf(TEXT("Pickedup Pickid=%s Amount=%d"),*ItemInfoDef.ItemID.ToString(),FindResult.Amount);
+			PrintDebug(StrLog,FColor::Blue,1);
+		}
+		InPickupBase->ReduceAmount(FindResult.Amount);
+	};
+	
+	EFindState FindState = ForEachFoundSpace(ItemInfoDef.ItemID,ItemInfoDef.ItemAmount,FindFoundSpace);
+	
+	return FindState == EFindState::E_Completed?true:false;
+}
+
+void UInventoryComponent::AddDisplayTextToHUD(const FText& InDisplayText, const int32& InAmount)
+{
+	if (GetOwner<APawn>()->IsLocallyControlled())
+	{
+		AMHUD*HUD = GetOwner<APawn>()->GetController<APlayerController>()->GetHUD<AMHUD>();
+		UPickupDisplay*PickupDisplay = HUD->GetPickupDisplay();
+		PickupDisplay->SetPickupText(InDisplayText,InAmount);
+		if(!PickupDisplay->IsInViewport())
+		{
+			PickupDisplay->AddToViewport(1);
+		}
+		else if (!PickupDisplay->IsVisible())
+		{
+			PickupDisplay->SetVisibility(ESlateVisibility::Visible);
+		}
+	}
+}
+
+void UInventoryComponent::RemoveDisplayText()
+{
+	if (GetOwner<APawn>()->IsLocallyControlled())
+	{
+		AMHUD*HUD = GetOwner<APawn>()->GetController<APlayerController>()->GetHUD<AMHUD>();
+		UPickupDisplay*PickupDisplay = HUD->GetPickupDisplay();
+		if(PickupDisplay->IsVisible())
+		{
+			PickupDisplay->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+}
+
+void UInventoryComponent::ToggleInventory(bool bOpenInventory, bool bUseFade, bool bStopAnim)
+{
+	//lzy TODO:背包UI未完成
+}
+
+void UInventoryComponent::PrintDebug(FString InContent, FColor InColor,int32 InKey,float InPrintTime)
+{
+	if(bDebugMode && GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(InKey,InPrintTime,InColor,InContent);
+	}
+}
+
+EFindState UInventoryComponent::ForEachFoundSpace(const FName& InItemId,const int32&InItemAmout,TFunction<void(FFindResult FindResult)> InLoopFuntion)
+{
+	int32 ItemAmount = InItemAmout;
+	int32 OutContainerUID, OutFoundSlotID,OutRemainder;
+	bool bOutRotated;
+	bool bFound = FindSpace(InItemId,ItemAmount,OutContainerUID,OutFoundSlotID,OutRemainder,bOutRotated);
+
+	FFindResult FindResult(OutContainerUID,OutFoundSlotID,ItemAmount-OutRemainder,bOutRotated);
+	if(bFound)
+	{
+		ItemAmount = OutRemainder;
+		if(ItemAmount>0)
+		{
+			//递归 TFunction LoopBody
+			InLoopFuntion(FindResult);
+			return ForEachFoundSpace(InItemId,InItemAmout,InLoopFuntion);
+		}
+		else
+		{
+			InLoopFuntion(FindResult);
+			return EFindState::E_Completed;
+		}
+	}else
+	{
+		return EFindState::E_Cancelled;
+	}
+}
+
+void UInventoryComponent::Client_InitWidgets_Implementation(FClientInventoryData InClientInventoryData)
+{
+	//lzy TODO:背包UI未完成
+}
+
+void UInventoryComponent::ServerInitInventory()
+{
+	if (GetOwner<APawn>() == nullptr)
+	{
+		UE_LOG(LogTemp,Warning,TEXT("lzy Pawn == nullptr"));
+		return;
+	}
+	
+	if (!GetOwner<APawn>()->HasAuthority()) return;
+
+	if (InventoryType == EInventoryType::E_Player)
+	{
+		OnSlotUpdate.AddDynamic(this,&ThisClass::HandleSelfOnSlotUpdate);
+		TArray<FClientInventoryData>ClientInventoryDatas = SetupInventory();
+		
+		for (FClientInventoryData&ClientInventoryData:ClientInventoryDatas)
+		{
+			Client_InitWidgets(ClientInventoryData);
+		}
+	}
+	else if (InventoryType == EInventoryType::E_Car)
+	{
+		SetupInventory();
+	}
+	else if (InventoryType == EInventoryType::E_AI)
+	{
+		SetupInventory();
+	}
+}
+
+TArray<FClientInventoryData> UInventoryComponent::SetupInventory()
+{
+	TArray<FClientInventoryData> ClientInventoryDatas;
+	if (InventoryDatas.IsEmpty()) return ClientInventoryDatas;
+
+	for (UInventoryData*&InventoryData:InventoryDatas)
+	{
+		FClientInventoryData ClientInventoryData;
+		ClientInventoryData.UIDs = UInventoryLibrary::AddUniqueContainers(InventoryData->Containers,this);
+		ClientInventoryData.InventoryData = InventoryData;
+		
+		ClientInventoryDatas.Add(ClientInventoryData);
+	}
+	return ClientInventoryDatas;
+}
+
+void UInventoryComponent::HandleSelfOnSlotUpdate(int32 ContainerUId, int32 InSlotId, FItemInfoDef InItemToAdd)
+{
+	//lzy TODO:未完成
+}
+
 bool UInventoryComponent::FindSpace(const FName& InItemId, const int32& InAmount, int32& OutContainerUID,
-	int32& OutFoundSlotID, int32& OutRemainder,bool& bOutRotated)
+                                    int32& OutFoundSlotID, int32& OutRemainder,bool& bOutRotated)
 {
 	FInventoryItem InventoryItem;
 	UInventoryLibrary::GetDefaultIneventoryItemById(InItemId,InventoryItem);
@@ -288,28 +469,28 @@ int32 UInventoryComponent::GetContainerIndexByUId(const int32& InContainerId)
 	return -1;
 }
 
-FItemInfoDef UInventoryComponent::GetItemIndexBySlotId(const FContainerInfo& InContainerInfo, const int32& InSlotId)
+int32 UInventoryComponent::GetItemIndexBySlotId(const FContainerInfo& InContainerInfo, const int32& InSlotId)
 {
 	for (int32 i = 0;i<InContainerInfo.Items.Num();i++)
 	{
 		if (InContainerInfo.Items[i].CurrentSlotID == InSlotId)
 		{
-			return InContainerInfo.Items[i];
+			return i;
 		}
 	}
-	return FItemInfoDef();
+	return -1;
 }
 
 FItemInfoDef UInventoryComponent::GetItemByUIdAndSlotId(const int32& InContainerId, const int32& InSlotId)
 {
 	const int32& ContainerIndex = GetContainerIndexByUId(InContainerId);
 	const FContainerInfo& ContainerInfo = Containers[ContainerIndex];
-	return GetItemIndexBySlotId(ContainerInfo,InSlotId);
+	const int32& ItemIndex = GetItemIndexBySlotId(ContainerInfo,InSlotId);
+	return ContainerInfo.Items[ItemIndex];
 }
 
 UEquipmentDefinition* UInventoryComponent::CreateItemData(const FName& InItemId)
 {
-	
 	FInventoryItem InventoryItem;
 	UInventoryLibrary::GetDefaultIneventoryItemById(InItemId,InventoryItem);
 	if(InventoryItem.EquipmentDefinition)
@@ -345,14 +526,14 @@ void UInventoryComponent::SetItemOnContainer(const FItemInfoDef& InItemInfo, con
 	FContainerInfo& ContainerInfo = Containers[ContainerIndex];
 	
 	//在容器中,这个Slot上的东西
-	FItemInfoDef OriginalItemInfo = GetItemIndexBySlotId(ContainerInfo,InSlotId);
+	int32 ContainerItemIndex = GetItemIndexBySlotId(ContainerInfo,InSlotId);
 
 	//这个道具的详细信息
 	FInventoryItem InventoryItem;
 	UInventoryLibrary::GetDefaultIneventoryItemById(InItemInfo.ItemID,InventoryItem);
 	
 	//这slot上没东西
-	if(OriginalItemInfo.ItemID.IsNone())
+	if(ContainerItemIndex == -1)
 	{
 		//给容器中添加Item
 		FItemInfoDef ItemInfo = InItemInfo;
@@ -366,7 +547,7 @@ void UInventoryComponent::SetItemOnContainer(const FItemInfoDef& InItemInfo, con
 		{
 			if(SubContainerUId == -1) continue;
 			//找到这个子容器
-			int32 SubContainerIndex = GetContainerIndexByUId(InContainerId);
+			int32 SubContainerIndex = GetContainerIndexByUId(SubContainerUId);
 			FContainerInfo& SubContainerInfo = Containers[SubContainerIndex];
 			//设置他显不显示库存
 			SubContainerInfo.bCheckForSpace = ContainerInfo.bShowInventory;
@@ -383,8 +564,10 @@ void UInventoryComponent::SetItemOnContainer(const FItemInfoDef& InItemInfo, con
 		return;
 	}
 
-	//如果不为空说明这有相同东西,尝试去叠加
+	//如果不为空说明这有东西,看看是不是相同的尝试去叠加
 	bool bIsStackable = UInventoryLibrary::IsStackable(InventoryItem);
+	FItemInfoDef OriginalItemInfo =ContainerInfo.Items[ContainerItemIndex];
+	
 	if (OriginalItemInfo.ItemID == InItemInfo.ItemID && bIsStackable)
 	{
 		AddItemAmount(InContainerId,InSlotId,InItemInfo.ItemAmount);
@@ -395,7 +578,10 @@ TArray<int32> UInventoryComponent::GetItemSlotIndexs(const int32& InItemContaine
 {
 	//找到容器里的具体Item
 	const int32& ContainerIndex = GetContainerIndexByUId(InItemContainerUId);
-	FItemInfoDef ItemInfo = GetItemIndexBySlotId(Containers[ContainerIndex],InItemSlotId);
+	const int32& ItemIndex=GetItemIndexBySlotId(Containers[ContainerIndex],InItemSlotId);
+	if(ItemIndex==-1)return TArray<int32>();
+	
+	FItemInfoDef ItemInfo =Containers[ContainerIndex].Items[ItemIndex];
 	if(ItemInfo.ItemID.IsNone()) return TArray<int32>();
 
 	//查找这个道具在容器中的具体起始位置
@@ -413,7 +599,8 @@ TArray<int32> UInventoryComponent::GetItemSlotIndexs(const int32& InItemContaine
 		{
 			FIntPoint CurrentTile = FIntPoint(Column,Row);
 			bool bIsValid = UInventoryLibrary::IsValidTile(CurrentTile,Containers[ContainerIndex].ContainerSize);
-			if(!bIsValid) continue;
+			//lzy TODO:跳过还是返回?
+			if(!bIsValid) return TArray<int32>();
 			int32 OccupySlotIndex = UInventoryLibrary::TileToIndex(CurrentTile,Containers[ContainerIndex].ContainerSize);
 			OccupySlotIds.Add(OccupySlotIndex);
 		}
@@ -424,8 +611,47 @@ TArray<int32> UInventoryComponent::GetItemSlotIndexs(const int32& InItemContaine
 
 void UInventoryComponent::AddItemAmount(const int32& InContainerUId, const int32 InSlotId,const int32& InAddAmount)
 {
-	//TODO:lzy 未完成
+	int32 ContainerIndex = GetContainerIndexByUId(InContainerUId);
+	int32 ItemIndex = GetItemIndexBySlotId(Containers[ContainerIndex],InSlotId);
+	FItemInfoDef&ItemInfoDef = Containers[ContainerIndex].Items[ItemIndex];
+	if (ItemInfoDef.ItemAmount + InAddAmount <= 0)
+	{
+		RemoveItem(InContainerUId,InSlotId);
+		OnSlotUpdate.Broadcast(InContainerUId,InSlotId,FItemInfoDef());
+		return;
+	}
+
+	FInventoryItem InventoryItem;
+	UInventoryLibrary::GetDefaultIneventoryItemById(ItemInfoDef.ItemID,InventoryItem);
+	if (InventoryItem.bStackable)
+	{
+		ItemInfoDef.ItemAmount+=InAddAmount;
+		OnSlotUpdate.Broadcast(InContainerUId,InSlotId,ItemInfoDef);
+	}
 }
 
+void UInventoryComponent::RemoveItem(const int32& InContainerId, const int32& InSlotId)
+{
+	ClearItemOnSlots(InContainerId,InSlotId);
+	int32 ContainerIndex = GetContainerIndexByUId(InContainerId);
+	int32 ItemIndex = GetItemIndexBySlotId(Containers[ContainerIndex],InSlotId);
+	Containers[ContainerIndex].Items.RemoveAt(ItemIndex);
+}
 
+void UInventoryComponent::ClearItemOnSlots(const int32& InContainerId, const int32& InSlotId)
+{
+	TArray<int32>ItemIndexs = GetItemSlotIndexs(InContainerId,InSlotId);
+	SetSlotsEmpty(InContainerId,ItemIndexs);
+}
 
+void UInventoryComponent::SetSlotsEmpty(const int32& InContainerId, const TArray<int32>& InSlotIndexs,const bool& InbSetEmpty)
+{
+	int32 ContainerIndex = GetContainerIndexByUId(InContainerId);
+	for (const int32&SlotIndex : InSlotIndexs)
+	{
+		Containers[ContainerIndex].Slots[SlotIndex].ItemSlotID = -1;
+		Containers[ContainerIndex].Slots[SlotIndex].bIsEmpty = InbSetEmpty;
+	}
+}
+
+#pragma optimize("",on)

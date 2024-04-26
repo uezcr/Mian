@@ -105,4 +105,8 @@ public:
 	 */
 	UFUNCTION(BlueprintPure,Category="InventoryLibrary")
 	static bool IsStackable(const FInventoryItem&InInventoryItem);
+
+	/*获取本地玩家身上的库存组件*/
+	UFUNCTION(BlueprintCallable,Category="InventoryLibrary")
+	static UInventoryComponent*GetLocalPlayerInventoryComponent(UObject*InWorldContext);
 };

@@ -7,7 +7,9 @@
 #include "GameplayTagsManager.h"
 #include "InventoryComponent.h"
 #include "InventoryType.h"
+#include "Blueprint/UserWidget.h"
 #include "GameMode/MGameMode.h"
+#include "Kismet/GameplayStatics.h"
 
 
 FName UInventoryLibrary::GetItemNameByGameplayTag(const FGameplayTag& InGameplayTag)
@@ -103,3 +105,22 @@ bool UInventoryLibrary::IsStackable(const FInventoryItem& InInventoryItem)
 {
 	return InInventoryItem.OwnInventoryData==nullptr && InInventoryItem.bStackable;
 }
+
+UInventoryComponent* UInventoryLibrary::GetLocalPlayerInventoryComponent(UObject*InWorldContext)
+{
+	if (!InWorldContext->GetWorld()) return nullptr;
+	
+	if (InWorldContext->GetWorld()->GetFirstPlayerController() && InWorldContext->GetWorld()->GetFirstPlayerController()->GetPawn())
+	{
+		APawn*LocalPawn = InWorldContext->GetWorld()->GetFirstPlayerController()->GetPawn();
+		if (!LocalPawn) return nullptr;
+		
+		UInventoryComponent*InventoryComponent = Cast<UInventoryComponent>(LocalPawn->GetComponentByClass(UInventoryComponent::StaticClass()));
+		if (InventoryComponent)
+		{
+			return InventoryComponent;
+		}
+	}
+	return nullptr;
+}
+

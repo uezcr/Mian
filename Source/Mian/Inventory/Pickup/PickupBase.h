@@ -30,7 +30,7 @@ protected:
 	TArray<FContainerInfo> SpawnContainers;
 
 	//道具的数据结构
-	UPROPERTY(ReplicatedUsing="OnRep_ItemInfo",BlueprintReadWrite,Category="Pickup",EditInstanceOnly,meta=(ExposeOnSpawn))
+	UPROPERTY(Replicated,BlueprintReadWrite,Category="Pickup",EditInstanceOnly,meta=(ExposeOnSpawn))
 	FItemInfoDef ItemInfo;
 
 	//这个道具要有一些什么道具(比如这个道具是个仓库)
@@ -47,14 +47,23 @@ public:
 	virtual void OnTraceEnter_Implementation()override;
 	virtual void OnTraceLeave_Implementation()override;
 	//~End of IInterface interface
+
+	/*清空容器中的数据*/
+	UFUNCTION(BlueprintCallable,Category="Pickup")
+	void ResetContainerInfo();
+
+	/*减少数量*/
+	UFUNCTION(BlueprintCallable,Category="Pickup")
+	void ReduceAmount(const int32&InAmount);
+	
+	FORCEINLINE FItemInfoDef GetItemInfo(){return ItemInfo;};
+	FORCEINLINE UInventoryComponent*GetInventoryComponent(){return InventoryComponent;};
 	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION(BlueprintNativeEvent)
-	void OnRep_ItemInfo();
 
 public:
 	// Called every frame

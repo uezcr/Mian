@@ -4,6 +4,7 @@
 
 class UItemContainersData;
 class UEquipmentDefinition;
+class UInventoryData;
 
 //道具类型
 UENUM(Blueprintable,BlueprintType)
@@ -91,6 +92,15 @@ struct FItemInfoDef
 {
 	GENERATED_BODY()
 	FItemInfoDef(){}
+	FItemInfoDef(FName InItemID,bool InbRotated,int32 InItemAmount,int32 InCurrentSlotID,TArray<int32> InOwnContainerUIDs,UEquipmentDefinition*InEquipData)
+	{
+		ItemID = InItemID;
+		bRotated = InbRotated;
+		ItemAmount = InItemAmount;
+		CurrentSlotID = InCurrentSlotID;
+		OwnContainerUIDs = InOwnContainerUIDs;
+		EquipData = InEquipData;
+	}
 	//道具在表中的表行名
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="ItemInfos")
 	FName ItemID;
@@ -101,11 +111,11 @@ struct FItemInfoDef
 
 	//道具数量
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="SlotInfo")
-	int32 ItemAmount=-1;
+	int32 ItemAmount=1;
 	
 	//所在的插槽的ID
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="SlotInfo")
-	int32 CurrentSlotID=-1;
+	int32 CurrentSlotID=0;
 
 	//道具自己拥有的UIDs
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="SlotInfo")
@@ -163,7 +173,7 @@ struct FInventoryItem :public FTableRowBase
 
 	//物品的介绍
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	UTexture2D* ItemIcon;
+	UTexture2D* ItemIcon=nullptr;
 
 	//拉伸纹理
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
@@ -183,7 +193,7 @@ struct FInventoryItem :public FTableRowBase
 
 	//这个道具可以叠加吗
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	bool bStackable;
+	bool bStackable = false;
 
 	//最大叠加数量
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
@@ -225,7 +235,7 @@ struct FInventoryItem :public FTableRowBase
 
 	//拾取完物品后这个物品销毁吗
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	bool DestoryOnPickup=true;
+	bool bDestoryOnPickup=true;
 };
 
 //容器规则
@@ -265,7 +275,7 @@ struct FContainerInfo
 
 	//显示库存吗
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="ContainerInfo")
-	bool bShowInventory;
+	bool bShowInventory=false;
 
 	//检查是不是有空间,当背包1把背包2装进去后,背包2不应该在检查空间
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="ContainerInfo")
@@ -288,3 +298,54 @@ struct FContainerInfo
 	FKey InputKey;
 };
 
+/*拾取物品时 在容器中找到的物品*/
+USTRUCT(Blueprintable,BlueprintType)
+struct FFindResult
+{
+	GENERATED_BODY()
+	FFindResult(){}
+	FFindResult(int32 InContainerUID,int32 InSlotID,int32 InAmount,bool InbRotated)
+	{
+		ContainerUID = InContainerUID;
+		SlotID = InSlotID;
+		Amount = InAmount;
+		bRotated = InbRotated;
+	}
+	//容器的ID
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="FindResult")
+	int32 ContainerUID = -1;
+	
+	//插槽ID
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="FindResult")
+	int32 SlotID = -1;
+	
+	//数量
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="FindResult")
+	int32 Amount = -1;
+
+	//插槽ID
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="FindResult")
+	bool bRotated = false;
+};
+
+/*客户端那边需要的InventoryData*/
+USTRUCT(Blueprintable,BlueprintType)
+struct FClientInventoryData
+{
+	GENERATED_BODY()
+	FClientInventoryData(){}
+	FClientInventoryData(UInventoryData*InInventoryData,TArray<int32>InUIDs)
+	{
+		InventoryData = InInventoryData;
+		UIDs=InUIDs;
+	}
+	
+	/*储存库存信息默认DataAsset*/
+	UPROPERTY(BlueprintReadWrite,Category="ClientInventoryData")
+	UInventoryData*InventoryData;
+
+	/*库存容器的那些ID*/
+	UPROPERTY(BlueprintReadWrite,Category="ClientInventoryData")
+	TArray<int32>UIDs;
+	
+};

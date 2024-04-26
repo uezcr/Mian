@@ -37,7 +37,6 @@ void APickupBase::BeginPlay()
 	//没有要生成的容器
 	if (SpawnContainers.IsEmpty())
 	{
-
 		//这个道具是不是自己有容器(比如背包 背心)
 		if(!InventoryItem.OwnInventoryData) return;
 		
@@ -66,10 +65,6 @@ void APickupBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	DOREPLIFETIME(APickupBase,SubItems);
 }
 
-void APickupBase::OnRep_ItemInfo_Implementation()
-{
-}
-
 void APickupBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -77,14 +72,73 @@ void APickupBase::Tick(float DeltaTime)
 
 void APickupBase::OnInteract_Implementation(AActor* InSourceInteractable, EInteractionType InInteractionType)
 {
+	UInventoryComponent*SourceInventoryComponent=Cast<UInventoryComponent>(InSourceInteractable->GetComponentByClass(UInventoryComponent::StaticClass()));
+	switch (InInteractionType)
+	{
+		case EInteractionType::E_Default:
+			break;
+		case EInteractionType::E_Pickup:
+			if (SourceInventoryComponent)
+			{
+				SourceInventoryComponent->PickupItem(this);
+			}
+			break;
+		case EInteractionType::E_CheckItem:
+			break;
+		case EInteractionType::E_GetInCar:
+			break;
+		case EInteractionType::E_ShowCarStats:
+			break;
+	}
+	
 }
 
 void APickupBase::OnTraceEnter_Implementation()
 {
+	ItemMeshComp->SetRenderCustomDepth(true);
+	UInventoryComponent*LocalPlayerInventoryComponent = UInventoryLibrary::GetLocalPlayerInventoryComponent(GetWorld());
+	if(LocalPlayerInventoryComponent)
+	{
+		FInventoryItem InventoryItem;
+		UInventoryLibrary::GetDefaultIneventoryItemById(ItemInfo.ItemID,InventoryItem);
+		LocalPlayerInventoryComponent->AddDisplayTextToHUD(InventoryItem.Name,ItemInfo.ItemAmount);
+	}
 }
 
 void APickupBase::OnTraceLeave_Implementation()
 {
+	ItemMeshComp->SetRenderCustomDepth(false);
+	UInventoryComponent*LocalPlayerInventoryComponent = UInventoryLibrary::GetLocalPlayerInventoryComponent(GetWorld());
+	if(LocalPlayerInventoryComponent)
+	{
+		LocalPlayerInventoryComponent->RemoveDisplayText();
+	}
+}
+
+void APickupBase::ResetContainerInfo()
+{
+	if (!HasAuthority())return;
+	
+	InventoryComponent->ResetContainer();
+	ItemInfo.OwnContainerUIDs.Empty();
+}
+
+void APickupBase::ReduceAmount(const int32& InAmount)
+{
+	ItemInfo.ItemAmount -= InAmount;
+	if (ItemInfo.ItemAmount<=0)
+	{
+		FInventoryItem InventoryItem;
+		UInventoryLibrary::GetDefaultIneventoryItemById(ItemInfo.ItemID,InventoryItem);
+		if(InventoryItem.bDestoryOnPickup)
+		{
+			Destroy();
+		}else
+		{
+			ResetContainerInfo();
+		}
+	}
+	
 }
 
 

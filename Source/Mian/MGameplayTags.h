@@ -29,6 +29,8 @@ namespace MGameplayTags
 	MIAN_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Look_Stick);
 	MIAN_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Crouch);
 	MIAN_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_AutoRun);
+	MIAN_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Inventory);
+	MIAN_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Pickup);
 	
 	// These are mappings from MovementMode enums to GameplayTags associated with those enums (below)
 	MIAN_API	extern const TMap<uint8, FGameplayTag> MovementModeTagMap;

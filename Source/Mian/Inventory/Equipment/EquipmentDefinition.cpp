@@ -1,4 +1,1 @@
-// 
-
-
 #include "EquipmentDefinition.h"

@@ -28,6 +28,8 @@ namespace MGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputTag_Look_Stick, "InputTag.Look.Stick", "Look (stick) input.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputTag_Crouch, "InputTag.Crouch", "Crouch input.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputTag_AutoRun, "InputTag.AutoRun", "Auto-run input.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputTag_Inventory, "InputTag.Inventory", "Inventory input.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputTag_Pickup, "InputTag.Pickup", "Pickup input.");
 	
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Crouching, "Status.Crouching", "Target is crouching.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_AutoRunning, "Status.AutoRunning", "Target is auto-running.");

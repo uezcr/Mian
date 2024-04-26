@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(Blueprintable,BlueprintType)
 class MIAN_API UEquipmentDefinition : public UObject
 {
 	GENERATED_BODY()

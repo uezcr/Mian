@@ -20,7 +20,8 @@
 				"Hotfix",
 				"DeveloperSettings",
 				"CoreUObject",
-				"GameplayStateTreeModule"
+				"GameplayStateTreeModule",
+				"StateTreeModule"
 			]
 		}
 	],

@@ -4,8 +4,9 @@
 #include "MBotCharacter.generated.h"
 
 class UMStateTreeComponent;
+class AMAICoordinator;
 
-UCLASS()
+UCLASS(Abstract)
 class MIAN_API AMBotCharacter : public AMCharacter
 {
 	GENERATED_BODY()
@@ -13,8 +14,11 @@ class MIAN_API AMBotCharacter : public AMCharacter
 public:
 	AMBotCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	AMAICoordinator* GetAICoordinator() const {return AICoordinator;}
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mian|BotCharacter", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UMStateTreeComponent> StateTree;
-	
+	UPROPERTY(EditAnywhere,Category="MBotCharacter")
+	TObjectPtr<AMAICoordinator> AICoordinator;
 };

@@ -4,8 +4,9 @@
 #include "MAICoordinator.generated.h"
 
 class UBillboardComponent;
+class UMStateTreeComponent;
 
-UCLASS(Abstract)
+UCLASS(Abstract,NotBlueprintable)
 class MIAN_API AMAICoordinator : public AActor
 {
 	GENERATED_BODY()
@@ -22,8 +23,11 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-protected:
+private:
 	UPROPERTY(VisibleAnywhere,Category="MAICoordinator")
 	TObjectPtr<UBillboardComponent> CoordinatorScene = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AICoordinator", Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UMStateTreeComponent> StateTree;
 
 };

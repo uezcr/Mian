@@ -47,10 +47,6 @@ namespace MGameplayTags
 	// When extending Lyra, you can create your own movement modes but you need to update GetCustomMovementModeTagMap()
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Movement_Mode_Custom, "Movement.Mode.Custom", "This is invalid and should be replaced with custom tags.  See LyraGameplayTags::CustomMovementModeTagMap.");
 
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(GameplayEvent_Death, "GameplayEvent.Death", "Event that fires on death. This event only fires on the server.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(GameplayEvent_Reset, "GameplayEvent.Reset", "Event that fires once a player reset is executed.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(GameplayEvent_RequestReset, "GameplayEvent.RequestReset", "Event to request a player's pawn to be instantly replaced with a new one at a valid spawn location.");
-	
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_InventorySlot, "Inventory.Slot.InventorySlot", "库存插槽");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Headphone, "Inventory.Slot.Headphone", "耳机");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_Head, "Inventory.Slot.Head", "头");

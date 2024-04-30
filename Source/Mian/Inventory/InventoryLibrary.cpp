@@ -79,7 +79,7 @@ FIntPoint UInventoryLibrary::IndexToTile(const int32& InSlotId, const FIntPoint&
 
 int32 UInventoryLibrary::TileToIndex(const FIntPoint& InTile, const FIntPoint& InContainerSize)
 {
-	return InTile.X + InContainerSize.Y * InTile.Y;
+	return InTile.X + InContainerSize.X * InTile.Y;
 }
 
 FIntPoint UInventoryLibrary::RotatedSize(FIntPoint InContainerSize, const bool& bRotated)
@@ -122,5 +122,15 @@ UInventoryComponent* UInventoryLibrary::GetLocalPlayerInventoryComponent(UObject
 		}
 	}
 	return nullptr;
+}
+
+FLinearColor UInventoryLibrary::GetSupportedOutline()
+{
+	return FLinearColor(0.121138f,0.796875f,0.f,0.539f);
+}
+
+FLinearColor UInventoryLibrary::GetDefaultOutline()
+{
+	return FLinearColor(0.286275f,0.286275f,0.286275f,0.482353f);
 }
 

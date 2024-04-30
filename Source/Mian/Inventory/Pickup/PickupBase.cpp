@@ -90,7 +90,6 @@ void APickupBase::OnInteract_Implementation(AActor* InSourceInteractable, EInter
 		case EInteractionType::E_ShowCarStats:
 			break;
 	}
-	
 }
 
 void APickupBase::OnTraceEnter_Implementation()
@@ -132,8 +131,15 @@ void APickupBase::ReduceAmount(const int32& InAmount)
 		UInventoryLibrary::GetDefaultIneventoryItemById(ItemInfo.ItemID,InventoryItem);
 		if(InventoryItem.bDestoryOnPickup)
 		{
+			UInventoryComponent*LocalPlayerInventoryComponent = UInventoryLibrary::GetLocalPlayerInventoryComponent(GetWorld());
+			if(LocalPlayerInventoryComponent)
+			{
+				LocalPlayerInventoryComponent->RemoveDisplayText();
+			}
+			
 			Destroy();
-		}else
+		}
+		else
 		{
 			ResetContainerInfo();
 		}

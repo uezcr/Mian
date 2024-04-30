@@ -4,6 +4,8 @@
 #include "Components/ActorComponent.h"
 #include "InventoryComponent.generated.h"
 
+class UInventorySlot;
+class UContainer;
 class UPickupDisplay;
 class APickupBase;
 class UInventoryData;
@@ -112,6 +114,16 @@ public:
 	UFUNCTION(BlueprintCallable,Category="Inventory")
 	bool PickupItem(APickupBase* InPickupBase);
 
+	/*Debug 打印信息*/
+	UFUNCTION(BlueprintCallable,Category="Inventory")
+	void PrintDebug(FString InContent,FColor InColor=FColor::Blue,int32 InKey=1,float InPrintTime = 5.f);
+
+//UI的公开接口	
+#pragma region InventoryUI
+	/*获取所有的容器UI*/
+	UFUNCTION(BlueprintCallable,Category="Inventory")
+	TArray<UContainer*> GetAllContainerWidgets();
+
 	/*添加拾取UI到视口*/
 	UFUNCTION(BlueprintCallable,Category="Inventory")
 	void AddDisplayTextToHUD(const FText&InDisplayText,const int32&InAmount);
@@ -128,9 +140,39 @@ public:
 	UFUNCTION(BlueprintCallable,Category="Inventory")
 	void ToggleInventory(bool bOpenInventory,bool bUseFade,bool bStopAnim);
 
-	/*Debug 打印信息*/
+	/*把所有的Slot恢复成他原本的颜色*/
 	UFUNCTION(BlueprintCallable,Category="Inventory")
-	void PrintDebug(FString InContent,FColor InColor=FColor::Blue,int32 InKey=1,float InPrintTime = 5.f);
+	void ResetAllColorSlots();
+
+	/** 通过容器Id获取对应的容器
+	 * @param InContainerId		容器Id
+	 * @return 容器
+	 */
+	UFUNCTION(BlueprintPure,Category="Inventory")
+	FContainerInfo GetContainerByUId(const int32&InContainerId);
+
+	/** 获取当前道具占据的所有Slot
+	 * @param InItemContainerUId	容器Id 
+	 * @param InItemSlotId			占用的左上角Id
+	 * @return 返回占用的SlotId
+	 */
+	UFUNCTION(BlueprintPure,Category="Inventory")
+	TArray<int32> GetItemSlotIndexes(const int32&InItemContainerUId,const int32&InItemSlotId);
+
+	/** 通过容器ID,和插槽ID获取对应的Item
+	 * @param InContainerId 容器ID
+	 * @param InSlotId		插槽ID
+	 * @return ItemInfo 道具信息
+	 */
+	UFUNCTION(BlueprintPure,Category="Inventory")
+	FItemInfoDef GetItemByUIdAndSlotId(const int32&InContainerId,const int32&InSlotId);
+
+	/**	添加修改的Slot
+	 * @param InInventorySlot	修改的具体SlotWidget 
+	 */
+	UFUNCTION(BlueprintCallable,Category="Inventory")
+	void AddColorChangedSlot(UInventorySlot*InInventorySlot);
+#pragma endregion
 
 //PRC	
 	//请求交互当前射线扫到的Actor
@@ -140,6 +182,7 @@ public:
 	/*服务器添加容器后,同步给本机的容器信息*/
 	UFUNCTION(Client,Reliable,BlueprintCallable,Category="Inventory|RPC")
 	void Client_InitWidgets(FClientInventoryData InClientInventoryData);
+	
 private:
 
 	/*服务器要初始化容器的一些操作*/
@@ -201,13 +244,6 @@ private:
 	/*通过插槽ID,获取容器中对应的Items中的下标,通过下标去找ItemDef*/
 	int32 GetItemIndexBySlotId(const FContainerInfo&InContainerInfo,const int32&InSlotId);
 
-	/** 通过容器ID,和插槽ID获取对应的Item
-	 * @param InContainerId 容器ID
-	 * @param InSlotId		插槽ID
-	 * @return ItemInfo 道具信息
-	 */
-	FItemInfoDef GetItemByUIdAndSlotId(const int32&InContainerId,const int32&InSlotId);
-
 	/*	TODO:lzy 这个根据道具情况进行更改
 	 *	创建对应的装备信息,如果这个道具没有装备信息返回空
 	 */
@@ -225,7 +261,7 @@ private:
 	 * @param InContainerId		要往那个容器里设置
 	 * @param InSlotId			容器的具体插槽
 	 */
-	void SetItemOnContainer(const FItemInfoDef&InItemInfo,const int32&InContainerId,const int32&InSlotId);
+	bool SetItemOnContainer(const FItemInfoDef&InItemInfo,const int32&InContainerId,const int32&InSlotId);
 
 	/** 通过Item在容器中的Id,获取他占据的每个格子的Index
 	 * @param InItemContainerUId	容器Id
@@ -288,5 +324,17 @@ protected:
 	//库存的UI指针
 	UPROPERTY()
 	UInventoryScreen*InventoryScreen;
+
+	//战利品容器UI
+	UPROPERTY()
+	TArray<UContainer*> LootContainers;
+
+	//当前拥有的容器UI
+	UPROPERTY()
+	TArray<UContainer*> ContainerWidgets;
+
+	//改变颜色的所有Slot
+	UPROPERTY()
+	TArray<UInventorySlot*> ColorChangedSlots;
 #pragma endregion 
 };

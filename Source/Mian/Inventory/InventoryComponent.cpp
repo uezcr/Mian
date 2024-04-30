@@ -16,6 +16,8 @@
 #include "UI/Inventory/Pickup/PickupDisplay.h"
 
 #pragma optimize("",off)
+#include "UI/Inventory/Slot/InventorySlot.h"
+
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryComponent)
 
 UInventoryComponent::UInventoryComponent(const FObjectInitializer& ObjectInitializer)
@@ -146,25 +148,35 @@ void UInventoryComponent::Server_Interactable_Implementation(AActor* InActor, EI
 bool UInventoryComponent::PickupItem(APickupBase* InPickupBase)
 {
 	FItemInfoDef ItemInfoDef = InPickupBase->GetItemInfo();
-
-	Containers.Append(InPickupBase->GetInventoryComponent()->GetContainers());
+	
 	TFunction<void(FFindResult FindResult)> FindFoundSpace = [&](FFindResult FindResult)
 	{
 		ItemInfoDef.bRotated = FindResult.bRotated;
 		ItemInfoDef.ItemAmount = FindResult.Amount;
-		SetItemOnContainer(ItemInfoDef,FindResult.ContainerUID,FindResult.SlotID);
+		bool bPickupSuccess = SetItemOnContainer(ItemInfoDef,FindResult.ContainerUID,FindResult.SlotID);
 
+		if (bPickupSuccess)
+		{
+			InPickupBase->ReduceAmount(FindResult.Amount);
+		}
+		
 		if(bDebugMode)
 		{
 			FString StrLog = FString::Printf(TEXT("Pickedup Pickid=%s Amount=%d"),*ItemInfoDef.ItemID.ToString(),FindResult.Amount);
 			PrintDebug(StrLog,FColor::Blue,1);
 		}
-		InPickupBase->ReduceAmount(FindResult.Amount);
 	};
-	
+	Containers.Append(InPickupBase->GetInventoryComponent()->GetContainers());
 	EFindState FindState = ForEachFoundSpace(ItemInfoDef.ItemID,ItemInfoDef.ItemAmount,FindFoundSpace);
 	
 	return FindState == EFindState::E_Completed?true:false;
+}
+
+TArray<UContainer*> UInventoryComponent::GetAllContainerWidgets()
+{
+	TArray<UContainer*>ReturnValue = LootContainers;
+	ReturnValue.Append(ContainerWidgets);
+	return ReturnValue;
 }
 
 void UInventoryComponent::AddDisplayTextToHUD(const FText& InDisplayText, const int32& InAmount)
@@ -203,6 +215,55 @@ void UInventoryComponent::ToggleInventory(bool bOpenInventory, bool bUseFade, bo
 	//lzy TODO:背包UI未完成
 }
 
+void UInventoryComponent::ResetAllColorSlots()
+{
+	for (UInventorySlot*&InventorySlot:ColorChangedSlots)
+	{
+		InventorySlot->ResetSlotColor();
+	}
+	ColorChangedSlots.Empty();
+}
+
+FContainerInfo UInventoryComponent::GetContainerByUId(const int32& InContainerId)
+{
+	int32 ContainerIndex = GetContainerIndexByUId(InContainerId);
+	return Containers[ContainerIndex];
+}
+
+TArray<int32> UInventoryComponent::GetItemSlotIndexes(const int32& InItemContainerUId, const int32& InItemSlotId)
+{
+	const FContainerInfo& ContainerInfo = GetContainerByUId(InItemContainerUId);
+	const int32& ItemIndex = GetItemIndexBySlotId(ContainerInfo,InItemSlotId);
+	if (ItemIndex == -1) return TArray<int32>();
+	const FItemInfoDef& ItemInfo = ContainerInfo.Items[ItemIndex];
+
+	//起始位置和容器大小
+	const FIntPoint& ContainerSize = ContainerInfo.ContainerSize;
+	const FIntPoint& StartPosition = UInventoryLibrary::IndexToTile(InItemSlotId,ContainerSize);
+
+	FInventoryItem InventoryItem;
+	UInventoryLibrary::GetDefaultIneventoryItemById(ItemInfo.ItemID,InventoryItem);
+	FIntPoint ItemSize = UInventoryLibrary::SelectSize(ContainerInfo.ContainerTag,InventoryItem.ItemSize);
+	if (ItemInfo.bRotated)
+	{
+		ItemSize = UInventoryLibrary::RotatedSize(ContainerInfo.ContainerSize,ItemInfo.bRotated);
+	}
+
+	TArray<int32> ReturnValue;
+	for (int Raw = StartPosition.Y;Raw<StartPosition.Y+ItemSize.Y; Raw++)
+	{
+		for (int Cloumn = StartPosition.X;Cloumn<StartPosition.X+ItemSize.X;Cloumn++)
+		{
+			FIntPoint CurrentPosition(Cloumn,Raw);
+			bool bIsValid = UInventoryLibrary::IsValidTile(CurrentPosition,ContainerInfo.ContainerSize);
+			if(!bIsValid) return TArray<int32>();
+			int32 SlotIndex= UInventoryLibrary::TileToIndex(CurrentPosition,ContainerInfo.ContainerSize);
+			ReturnValue.Add(SlotIndex);
+		}
+	}
+	return ReturnValue;
+}
+
 void UInventoryComponent::PrintDebug(FString InContent, FColor InColor,int32 InKey,float InPrintTime)
 {
 	if(bDebugMode && GEngine)
@@ -226,7 +287,7 @@ EFindState UInventoryComponent::ForEachFoundSpace(const FName& InItemId,const in
 		{
 			//递归 TFunction LoopBody
 			InLoopFuntion(FindResult);
-			return ForEachFoundSpace(InItemId,InItemAmout,InLoopFuntion);
+			return ForEachFoundSpace(InItemId,ItemAmount,InLoopFuntion);
 		}
 		else
 		{
@@ -489,6 +550,14 @@ FItemInfoDef UInventoryComponent::GetItemByUIdAndSlotId(const int32& InContainer
 	return ContainerInfo.Items[ItemIndex];
 }
 
+void UInventoryComponent::AddColorChangedSlot(UInventorySlot* InInventorySlot)
+{
+	if (InInventorySlot)
+	{
+		ColorChangedSlots.AddUnique(InInventorySlot);
+	}
+}
+
 UEquipmentDefinition* UInventoryComponent::CreateItemData(const FName& InItemId)
 {
 	FInventoryItem InventoryItem;
@@ -517,9 +586,9 @@ bool UInventoryComponent::CreateItemContaines(const FName& InItemId, TArray<int3
 	return false;
 }
 
-void UInventoryComponent::SetItemOnContainer(const FItemInfoDef& InItemInfo, const int32& InContainerId,const int32& InSlotId)
+bool UInventoryComponent::SetItemOnContainer(const FItemInfoDef& InItemInfo, const int32& InContainerId,const int32& InSlotId)
 {
-	if(InItemInfo.ItemAmount == 0) return;
+	if(InItemInfo.ItemAmount == 0) return false;
 
 	//具体的容器
 	int32 ContainerIndex = GetContainerIndexByUId(InContainerId);
@@ -553,15 +622,16 @@ void UInventoryComponent::SetItemOnContainer(const FItemInfoDef& InItemInfo, con
 			SubContainerInfo.bCheckForSpace = ContainerInfo.bShowInventory;
 		}
 
-		TArray<int32> ItemOccupySlotIds = GetItemSlotIndexs(InContainerId,InItemInfo.CurrentSlotID);
+		TArray<int32> ItemOccupySlotIds = GetItemSlotIndexs(InContainerId,ItemInfo.CurrentSlotID);
 		for (int i =0;i<ItemOccupySlotIds.Num();i++)
 		{
-			ContainerInfo.Slots[i].ItemSlotID = ItemOccupySlotIds[0];
-			ContainerInfo.Slots[i].bIsEmpty = false;
+			
+			ContainerInfo.Slots[ItemOccupySlotIds[i]].ItemSlotID = ItemOccupySlotIds[0];
+			ContainerInfo.Slots[ItemOccupySlotIds[i]].bIsEmpty = false;
 		}
 
 		OnSlotUpdate.Broadcast(InContainerId,InSlotId,InItemInfo);
-		return;
+		return true;
 	}
 
 	//如果不为空说明这有东西,看看是不是相同的尝试去叠加
@@ -571,7 +641,9 @@ void UInventoryComponent::SetItemOnContainer(const FItemInfoDef& InItemInfo, con
 	if (OriginalItemInfo.ItemID == InItemInfo.ItemID && bIsStackable)
 	{
 		AddItemAmount(InContainerId,InSlotId,InItemInfo.ItemAmount);
+		return true;
 	}
+	return false;
 }
 
 TArray<int32> UInventoryComponent::GetItemSlotIndexs(const int32& InItemContainerUId,const int32& InItemSlotId)

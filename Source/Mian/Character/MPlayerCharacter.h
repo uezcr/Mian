@@ -11,10 +11,5 @@ class MIAN_API AMPlayerCharacter : public AMCharacter
 public:
 	// Sets default values for this character's properties
 	AMPlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
-private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mian|Character", Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UMCameraComponent> CameraComponent;
-	
 	
 };

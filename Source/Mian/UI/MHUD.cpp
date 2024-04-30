@@ -18,6 +18,7 @@ UPickupDisplay* AMHUD::GetPickupDisplay()
 		return nullptr;
 	}
 	return nullptr;
+	
 }
 
 bool AMHUD::DestroyPickupDisplay()

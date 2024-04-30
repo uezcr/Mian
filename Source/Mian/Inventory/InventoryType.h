@@ -349,3 +349,45 @@ struct FClientInventoryData
 	TArray<int32>UIDs;
 	
 };
+
+/*插槽的外观定义*/
+USTRUCT(Blueprintable,BlueprintType)
+struct FSlotAppearance
+{
+	GENERATED_BODY()
+	FSlotAppearance(){}
+	FSlotAppearance(FLinearColor InDefaultSlotColor,FLinearColor InSuccessColor,FLinearColor InFailColor,FLinearColor InOutlineColor,float InOutlineWidth,FVector2d InSlotSize)
+	{
+		DefaultSlotColor = InDefaultSlotColor;
+		SuccessColor = InSuccessColor;
+		FailColor = InFailColor;
+		OutlineColor = InOutlineColor;
+		OutlineWidth= InOutlineWidth;
+		SlotSize = InSlotSize;
+	}
+	//默认的插槽颜色
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="SlotAppearance")
+	FLinearColor DefaultSlotColor=FLinearColor(0.066626f,0.066626f,0.066626,0.501961);
+
+	//成功/允许时的颜色
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="SlotAppearance")
+	FLinearColor SuccessColor=FLinearColor(0.023529f,0.196078f,0.023529f,0.501961f);;
+
+	//失败/不允许时的颜色
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="SlotAppearance")
+	FLinearColor FailColor=FLinearColor(0.196078f,0,0,0.501961f);;
+
+	//外边框的颜色
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="SlotAppearance")
+	FLinearColor OutlineColor=FLinearColor(0,0,0,1.f);;
+
+	//外边框的颜色
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="SlotAppearance")
+	float OutlineWidth=1;
+
+	//Slot在UI中的大小尺寸
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="SlotAppearance")
+	FVector2D SlotSize=FVector2D(75.f);
+	
+	
+};

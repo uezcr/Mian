@@ -26,3 +26,7 @@ void AMAICoordinator::Tick(float DeltaTime)
 
 }
 
+void AMAICoordinator::BeginCoordination()
+{
+}
+

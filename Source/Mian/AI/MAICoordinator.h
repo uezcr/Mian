@@ -6,6 +6,18 @@
 class UBillboardComponent;
 class UMStateTreeComponent;
 
+UENUM(BlueprintType)
+enum class EAIPreferenceState : uint8
+{
+	EAIPREFERSTATE_IDLE      = 0,
+	EAIPREFERSTATE_PATROL    = 1,
+	EAIPREFERSTATE_OBSERVE   = 2,
+	EAIPREFERSTATE_MELEE     = 3,
+	EAIPREFERSTATE_RANGE     = 4,
+	EAIPREFERSTATE_SUPPORT   = 5,
+	EAIPREFERSTATE_AVOIDANCE = 6
+};
+
 UCLASS(Abstract,NotBlueprintable)
 class MIAN_API AMAICoordinator : public AActor
 {
@@ -29,5 +41,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AICoordinator", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UMStateTreeComponent> StateTree;
+
+protected:
+	UFUNCTION(BlueprintCallable,Category="AICoordinator|RuntimeFunctions")
+	virtual void BeginCoordination();
 
 };

@@ -19,6 +19,25 @@ void UMStateTreeComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void UMStateTreeComponent::SetStateTree(UStateTree* InStateTree)
 {
+	StopLogic("ChangeStateTree");
 	StateTreeRef.SetStateTree(InStateTree);
 	InitializeComponent();
+	RestartLogic();
 }
+
+void UMStateTreeComponent::SetStateTreeByTag(const FGameplayTagContainer& GameplayTagContainer)
+{
+	if (!GameplayTagContainer.IsValid())
+	{
+		return;
+	}
+	for(const FStateTreeWithTags& StateTreeSpec : StateTrees)
+	{
+		if(StateTreeSpec.StateTree&&StateTreeSpec.StateTreeTags.HasAll(GameplayTagContainer))
+		{
+			SetStateTree(StateTreeSpec.StateTree);
+			break;
+		}
+	}
+}
+

@@ -3,6 +3,7 @@
 #include "MCharacter.h"
 #include "MBotCharacter.generated.h"
 
+class AMPatrolRoute;
 class UMStateTreeComponent;
 class AMAICoordinator;
 
@@ -19,6 +20,10 @@ public:
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mian|BotCharacter", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UMStateTreeComponent> StateTree;
-	UPROPERTY(EditAnywhere,Category="MBotCharacter")
+	UPROPERTY(EditAnywhere,Category = "AI")
 	TObjectPtr<AMAICoordinator> AICoordinator;
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
+	TObjectPtr<AMPatrolRoute> PatrolRoute;
 };

@@ -196,6 +196,11 @@
 		{
 			"Name": "UnLua",
 			"Enabled": false
+		},
+		{
+			"Name": "UPS",
+			"Enabled": false,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/50c9d843ba5e4387862865800bb62cde"
 		}
 	]
 }

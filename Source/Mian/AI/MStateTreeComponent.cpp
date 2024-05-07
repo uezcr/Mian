@@ -41,3 +41,19 @@ void UMStateTreeComponent::SetStateTreeByTag(const FGameplayTagContainer& Gamepl
 	}
 }
 
+void UMStateTreeComponent::SetStateTreeByTag(const FGameplayTag& GameplayTag)
+{
+	if(!GameplayTag.IsValid())
+	{
+		return;
+	}
+	for(const FStateTreeWithTags& StateTreeSpec : StateTrees)
+	{
+		if(StateTreeSpec.StateTree&&StateTreeSpec.StateTreeTags.HasTag(GameplayTag))
+		{
+			SetStateTree(StateTreeSpec.StateTree);
+			break;
+		}
+	}
+}
+

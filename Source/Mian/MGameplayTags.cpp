@@ -60,6 +60,8 @@ namespace MGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_CarFront, "Inventory.Slot.CarFront", "汽车（前盖）");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_CarTop, "Inventory.Slot.CarTop", "汽车（车尾）");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory_Slot_CarLight, "Inventory.Slot.CarLight", "汽车（灯）");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(StateTree_AIState_Patrol, "StateTree.AIState.Patrol", "巡逻");
 	// Unreal Movement Modes
 	const TMap<uint8, FGameplayTag> MovementModeTagMap =
 	{

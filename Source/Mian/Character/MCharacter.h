@@ -30,9 +30,5 @@ class MIAN_API AMCharacter : public AModularCharacter
 
 public:
 	AMCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
-private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mian|Character", Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UMCameraComponent> CameraComponent;
 	
 };

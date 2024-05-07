@@ -37,5 +37,5 @@ public:
 	void SetStateTree(UStateTree* InStateTree);
 	UFUNCTION(BlueprintCallable,Category="StateTreeComponent")
 	void SetStateTreeByTag(const FGameplayTagContainer& GameplayTagContainer);
-	
+	void SetStateTreeByTag(const FGameplayTag& GameplayTag);
 };

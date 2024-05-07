@@ -62,5 +62,7 @@ namespace MGameplayTags
 	MIAN_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Inventory_Slot_CarFront);
 	MIAN_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Inventory_Slot_CarTop);
 	MIAN_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Inventory_Slot_CarLight);
+
+	MIAN_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateTree_AIState_Patrol);
 	
 };

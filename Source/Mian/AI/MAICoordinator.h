@@ -4,7 +4,7 @@
 #include "MAICoordinator.generated.h"
 
 class UBillboardComponent;
-class UMStateTreeComponent;
+class UStateTreeComponent;
 
 UENUM(BlueprintType)
 enum class EAIPreferenceState : uint8
@@ -39,8 +39,8 @@ private:
 	UPROPERTY(VisibleAnywhere,Category="MAICoordinator")
 	TObjectPtr<UBillboardComponent> CoordinatorScene = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AICoordinator", Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UMStateTreeComponent> StateTree;
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category = "AICoordinator", Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UStateTreeComponent> StateTree;
 
 protected:
 	UFUNCTION(BlueprintCallable,Category="AICoordinator|RuntimeFunctions")

@@ -22,8 +22,4 @@ private:
 	TObjectPtr<UMStateTreeComponent> StateTree;
 	UPROPERTY(EditAnywhere,Category = "AI")
 	TObjectPtr<AMAICoordinator> AICoordinator;
-
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
-	TObjectPtr<AMPatrolRoute> PatrolRoute;
 };

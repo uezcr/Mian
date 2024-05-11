@@ -39,12 +39,15 @@ protected:
 	UPROPERTY(EditAnywhere,Category="AICoordinator|Settings",meta=(DisplayName="逻辑核心Actor",EditCondition="bActorCore"))
 	TObjectPtr<AActor> LogicCoreActor = nullptr;
 	//核心是否受到威胁.
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="AICoordinator|RuntimeParams",meta=(DisplayName="核心受到威胁"))
+	UPROPERTY(BlueprintReadOnly,Category="AICoordinator|RuntimeParams",meta=(DisplayName="核心受到威胁"))
 	bool bThreatened = false;
 	//接受控制的AI.
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="AICoordinator|RuntimeParams",meta=(DisplayName="核心受到威胁"))
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="AICoordinator|RuntimeParams",meta=(DisplayName="接受控制的AI"))
 	TArray<TObjectPtr<AMBotCharacter>> AIPawns;
 
 protected:
 	virtual void BeginCoordination() override;
+
+public:
+	TArray<AMBotCharacter*> GetAIPawns();
 };

@@ -31,3 +31,8 @@ void AMAICoordinator_Honeycomb::BeginCoordination()
 {
 	Super::BeginCoordination();
 }
+
+TArray<AMBotCharacter*> AMAICoordinator_Honeycomb::GetAIPawns()
+{
+	return AIPawns;
+}

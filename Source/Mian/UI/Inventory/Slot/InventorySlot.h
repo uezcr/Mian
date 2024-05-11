@@ -15,6 +15,7 @@ struct FGameplayTag;
 class UCanvasPanel;
 class UContainer;
 class UMovableWindow;
+class UDragInventoryItem;
 /**
  * 库存中插槽
  */
@@ -94,9 +95,12 @@ public:
 	UFUNCTION(BlueprintCallable,Category="InventorySlot")
 	void RemoveItemWidget();
 
-	/*Slot拖拽时的世界*/
+	/** Slot拖拽时的事件
+	 * @param InAmountForAction 
+	 * @param InOperation 
+	 */
 	UFUNCTION(BlueprintCallable,Category="InventorySlot")
-	void SlotDropEvent();
+	void SlotDropEvent(const int32&InAmountForAction,UDragInventoryItem*InOperation);
 
 	/*设置插槽的背景颜色*/
 	UFUNCTION(BlueprintCallable,Category="InventorySlot")

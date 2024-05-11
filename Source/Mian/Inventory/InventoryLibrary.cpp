@@ -134,3 +134,13 @@ FLinearColor UInventoryLibrary::GetDefaultOutline()
 	return FLinearColor(0.286275f,0.286275f,0.286275f,0.482353f);
 }
 
+bool UInventoryLibrary::IsSelfInventory(UWorld* InWorldContext, const UInventoryComponent* InInventoryComponent)
+{
+	if (GetLocalPlayerInventoryComponent(InWorldContext) == InInventoryComponent)
+	{
+		return true;
+	}
+	return false;
+}
+
+

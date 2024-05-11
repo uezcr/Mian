@@ -93,8 +93,8 @@ public:
 
 	/** 筛选他的数量,有可能他是不能叠加的
 	 * @param InInventoryItem	道具信息
-	 * @param InAmount			
-	 * @return 
+	 * @param InAmount			当前道具的数量
+	 * @return 返回实际的数量
 	 */
 	UFUNCTION(BlueprintPure,Category="InventoryLibrary")
 	static int32 SelectAmount(const FInventoryItem&InInventoryItem,const int32&InAmount);
@@ -117,4 +117,8 @@ public:
 	/*获取默认的颜色*/
 	UFUNCTION(BlueprintPure,Category="InventoryLibrary")
 	static FLinearColor GetDefaultOutline();
+
+	/*输入的库存组件，是不是当前本地的库存组件*/
+	UFUNCTION(BlueprintPure,Category="InventoryLibrary")
+	static bool IsSelfInventory(UWorld*InWorldContext,const UInventoryComponent*InInventoryComponent);
 };

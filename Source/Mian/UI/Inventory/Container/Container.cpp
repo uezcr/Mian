@@ -125,3 +125,8 @@ TArray<FSlotInfo> UContainer::GenerateSlotInfos()
 
 	return SlotInfos;
 }
+
+void UContainer::UpdateSlotsWidget()
+{
+	
+}

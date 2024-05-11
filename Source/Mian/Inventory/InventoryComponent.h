@@ -167,6 +167,10 @@ public:
 	UFUNCTION(BlueprintPure,Category="Inventory")
 	FItemInfoDef GetItemByUIdAndSlotId(const int32&InContainerId,const int32&InSlotId);
 
+	/*这个携带交互组件的Owner是商人吗*/
+	UFUNCTION(BlueprintPure,Category="Inventory")
+	bool IsVendorInventory() const;
+
 	/**	添加修改的Slot
 	 * @param InInventorySlot	修改的具体SlotWidget 
 	 */
@@ -174,15 +178,59 @@ public:
 	void AddColorChangedSlot(UInventorySlot*InInventorySlot);
 #pragma endregion
 
-//PRC	
-	//请求交互当前射线扫到的Actor
-	UFUNCTION(Server,Reliable,BlueprintCallable,Category="Inventory|RPC")
-	void Server_Interactable(AActor*InActor,EInteractionType InInteractionType);
-
+//PRC
 	/*服务器添加容器后,同步给本机的容器信息*/
 	UFUNCTION(Client,Reliable,BlueprintCallable,Category="Inventory|RPC")
 	void Client_InitWidgets(FClientInventoryData InClientInventoryData);
 	
+	//请求交互当前射线扫到的Actor
+	UFUNCTION(Server,Reliable,BlueprintCallable,Category="Inventory|RPC")
+	void Server_Interactable(AActor*InActor,EInteractionType InInteractionType);
+
+	/** 请求移动道具位置
+	 * @param InFromContainerUId	要移动的道具容器Id 
+	 * @param InFormSlotId			要移动的道具SlotId
+	 * @param ToContainerUId		要移动到的容器Id
+	 * @param InToSlotId			要移动到的SlotId
+	 * @param InAmount				要移动的数量
+	 * @param InbRotated			旋转了吗
+	 * @param OutbSuccess			返回值，成功了吗
+	 */
+	UFUNCTION(Server,Reliable,BlueprintCallable,Category="Inventory|RPC")
+	void Server_RequestMoveItem(int32 InFromContainerUId,int32 InFormSlotId,int32 ToContainerUId,int32 InToSlotId,int32 InAmount,bool InbRotated);
+
+	/** 更新指定容器中的道具
+	 * @param InContainerUId		容器Id 
+	 * @param InSlotId				SlotId
+	 * @param InItemToAdd			要添加的道具
+	 * @param InCurrentContainers	当前拥有的Containers
+	 * @param InbIsLootWidget		更新的是战利品widget吗?
+	 */
+	UFUNCTION(Client,Reliable,BlueprintCallable,Category="Inventory|RPC")
+	void Client_UpdateSlotWidget(int32 InContainerUId,int32 InSlotId,FItemInfoDef InItemToAdd,TArray<FContainerInfo> InCurrentContainers,bool InbIsLootWidget);
+
+	/** 删除指定容器中的道具
+	 * @param InContainerUId		容器Id 
+	 * @param InSlotId				SlotId
+	 * @param InCurrentContainers	当前拥有的Containers
+	 * @param InbIsLootWidget		删除的是战利品widget吗?
+	 */
+	UFUNCTION(Client,Reliable,BlueprintCallable,Category="Inventory|RPC")
+	void Client_RemoveItemWidget(int32 InContainerUId,int32 InSlotId,TArray<FContainerInfo> InCurrentContainers,bool InbIsLootWidget);
+
+	/** 请求转移道具
+	 * @param InSourceInventory 
+	 * @param InSourceContainerUID 
+	 * @param InSourceSlotId 
+	 * @param InTargetInventory 
+	 * @param InTargetContainerUID 
+	 * @param InTargetSlotID 
+	 * @param InAmount 
+	 * @param InbRotated 
+	 */
+	UFUNCTION(Server,Reliable,BlueprintCallable,Category="Inventory|RPC")
+	void Server_RequestTransferItem(UInventoryComponent*InSourceInventory,int32 InSourceContainerUID,int32 InSourceSlotId,UInventoryComponent*InTargetInventory,
+		int32 InTargetContainerUID,int32 InTargetSlotID,int32 InAmount,bool InbRotated);
 private:
 
 	/*服务器要初始化容器的一些操作*/
@@ -240,6 +288,9 @@ private:
 
 	/*通过容器ID,获取容器数组中管理的容器下标*/
 	int32 GetContainerIndexByUId(const int32&InContainerId);
+
+	/*通过容器ID,获取输入容器数组中管理的容器下标*/
+	int32 GetContainerIndexByUId(const TArray<FContainerInfo>& InContainers,const int32&InContainerId) const;
 
 	/*通过插槽ID,获取容器中对应的Items中的下标,通过下标去找ItemDef*/
 	int32 GetItemIndexBySlotId(const FContainerInfo&InContainerInfo,const int32&InSlotId);
@@ -303,7 +354,105 @@ private:
 	 */
 	EFindState ForEachFoundSpace(const FName& InItemId,const int32&InItemAmout,TFunction<void(FFindResult FindResult)> InLoopFuntion);
 
+	/** 移动道具
+	 * @param InSourceContainerUId	这个道具归属的容器 
+	 * @param InSourceSlotId		这个道具的所在的SlotId
+	 * @param InTargetContainerUId	这个道具要到的容器
+	 * @param InTargetSlotId		这个道具要到的SlotId
+	 * @param InAmount				道具的数量
+	 * @param InbRotated			这个道具旋转了吗
+	 * @return 移动成功了吗
+	 */
+	bool MoveItem(const int32& InSourceContainerUId,const int32& InSourceSlotId,const int32& InTargetContainerUId,const int32& InTargetSlotId,const int32& InAmount,const bool& InbRotated);
+
+	/** 获取嵌套的所有容器
+	 * @param InUIds	要检查的容器
+	 * @return 所有的容器
+	 */
+	TArray<int32> GetNestedContainerUIds(const TArray<int32>& InUIds);
+
+	/** 当拖拽到一个插槽上进行检测，是否可以放入，可以就直接装入
+	 * @param InItemToDrop			在拖拽的道具
+	 * @param InSourceContainerUId	这个道具原来在的容器Id
+	 * @param InTargetContainerUId	拖拽到的目标容器Id
+	 * @param InTargetSlotId		拖拽到的目标SlotId
+	 * @param OutDropContainerUId	返回实际这个物品装到那个容器Id
+	 * @param OutDropSlotId			返回实际这个物品装到那个SlotId
+	 * @param OutDropAmount			返回拖拽的数量
+	 * @param OutbDropRotated		拖拽时他旋转了吗
+	 * @return 成功拖拽到别的插槽了
+	 */
+	bool CanDropToSlot(const FItemInfoDef&InItemToDrop,const int32&InSourceContainerUId,const int32& InTargetContainerUId,const int32&InTargetSlotId,
+	                   int32&OutDropContainerUId,int32&OutDropSlotId,int32&OutDropAmount,bool&OutbDropRotated);
+
+	/** 尝试吧道具装入库存
+	 * @param InItemToAdd				要装的道具 
+	 * @param InParentItemContainerUID	要装在那(这个一般是背包/背心)的容器Id
+	 * @param InParentItemSlotID		要装在那个具体的Slot
+	 * @param OutContainerUID			实际装在那个容器里了
+	 * @param OutSlotId					实际装入的Slot
+	 * @param OutRemainder				剩余数量
+	 * @param OutbRotated				旋转了吗
+	 * @return 装成功了？
+	 */
+	bool CanAddInside(const FItemInfoDef&InItemToAdd,const int32&InParentItemContainerUID,const int32&InParentItemSlotID,int32 &OutContainerUID,
+	                  int32 &OutSlotId,int32& OutRemainder,bool&OutbRotated);
 	
+	/** 这组容器是否全部为空
+	 * @param InContainerUIDs	要检查的所有容器Id
+	 * @return 全部为空 = true
+	 */
+	bool AreContainersEmpty(const TArray<int32>&InContainerUIDs);
+
+	/** 更新容器中的信息
+	 * @param InContainerUId	要更新的容器Id 
+	 * @param InSlotId			要更新的SlotId
+	 * @param InItemToAdd		要添加的道具
+	 * @param InbIsLootWidget	战利品的Widget?
+	 */
+	void UpdateSlot(const int32& InContainerUId,const int32& InSlotId,const FItemInfoDef& InItemToAdd,const bool& InbIsLootWidget);
+	
+	/** 更新容器Widget里的信息
+	 * @param InContainerUId		要更新的容器Id 
+	 * @param InSlotId				具体的SlotId
+	 * @param InItemToAdd			要更新成的道具
+	 * @param InCurrentContainers	当前的容器
+	 * @param InbIsLootWidget		是战利品容器吗
+	 */
+	void UpdateSlotWidget(const int32& InContainerUId,const int32& InSlotId,const FItemInfoDef& InItemToAdd,const TArray<FContainerInfo>& InCurrentContainers,const bool& InbIsLootWidget);
+
+	/** 删除指定容器中的道具
+	 * @param InContainerUId		容器Id 
+	 * @param InSlotId				SlotId
+	 * @param InCurrentContainers	当前拥有的Containers
+	 * @param InbIsLootWidget		删除的是战利品widget吗?
+	 */
+	void RemoveItemWidget(int32 InContainerUId,int32 InSlotId,TArray<FContainerInfo> InCurrentContainers,bool InbIsLootWidget);
+	
+	/** 根据容器Id获取战利品容器(LootContainers)里的Widget
+	 * @param InContainerUID	容器Id
+	 * @return 容器Widget
+	 */
+	UContainer*GetLootContainerWidgetByUID(const int32&InContainerUID);
+
+	/** 根据容器Id获取容器(ContainerWidgets)里的Widget
+	 * @param InContainerUID	容器Id
+	 * @return 容器Widget
+	 */
+	UContainer*GetContainerWidgetByUID(const int32&InContainerUID);
+
+	/** 转移道具
+	 * @param InSourceInventory 
+	 * @param InSourceContainerUID 
+	 * @param InSourceSlotId 
+	 * @param InTargetInventory 
+	 * @param InTargetContainerUID 
+	 * @param InTargetSlotID 
+	 * @param InAmount 
+	 * @param InbRotated 
+	 */
+	void TransferItem(UInventoryComponent*InSourceInventory,const int32& InSourceContainerUID,const int32& InSourceSlotId,UInventoryComponent*InTargetInventory,
+	                  const int32& InTargetContainerUID,const int32& InTargetSlotID,const int32& InAmount,const bool& InbRotated);
 	
 //射线检测
 #pragma region InteractionTrace

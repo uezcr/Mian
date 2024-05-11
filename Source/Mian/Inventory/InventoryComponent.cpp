@@ -16,6 +16,7 @@
 #include "UI/Inventory/Pickup/PickupDisplay.h"
 
 #pragma optimize("",off)
+#include "UI/Inventory/Container/Container.h"
 #include "UI/Inventory/Slot/InventorySlot.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InventoryComponent)
@@ -300,9 +301,307 @@ EFindState UInventoryComponent::ForEachFoundSpace(const FName& InItemId,const in
 	}
 }
 
+bool UInventoryComponent::MoveItem(const int32& InSourceContainerUId, const int32& InSourceSlotId,
+	const int32& InTargetContainerUId, const int32& InTargetSlotId, const int32& InAmount, const bool& InbRotated)
+{
+	if(IsVendorInventory()) return false;
+
+	FItemInfoDef SourceItem = GetItemByUIdAndSlotId(InSourceContainerUId,InSourceSlotId);
+	FItemInfoDef NewItem = SourceItem;
+	//嵌套的容器Id
+	TArray<int32>NestedContainerUIds=GetNestedContainerUIds(SourceItem.OwnContainerUIDs);
+	bool bIsNested = NestedContainerUIds.Contains(InTargetContainerUId);
+	//要移动的这些,是否有的不同
+	bool bIsTheSame = InTargetContainerUId!=InSourceContainerUId || InTargetSlotId!=InSourceSlotId || SourceItem.bRotated != InbRotated;
+	if (bIsNested==false && bIsTheSame)
+	{
+		NewItem.bRotated = InbRotated;
+		NewItem.ItemAmount = InAmount;
+		int32 OutDropContainerUId,OutDropSlotId,OutAmout;
+		bool OutbDropRotated;
+		bool bCanDrop = CanDropToSlot(NewItem,InSourceContainerUId,InTargetContainerUId,InTargetSlotId,OutDropContainerUId,OutDropSlotId,OutAmout,OutbDropRotated);
+		if (bCanDrop)
+		{
+			NewItem.bRotated = OutbDropRotated;
+			NewItem.ItemAmount = OutAmout;
+			AddItemAmount(InSourceContainerUId,InSourceSlotId,OutAmout*-1);
+			SetItemOnContainer(NewItem,OutDropContainerUId,OutDropSlotId);
+			return true;
+		}
+	}
+
+	Client_UpdateSlotWidget(InSourceContainerUId,InSourceSlotId,SourceItem,Containers,false);
+	return false;
+}
+
+TArray<int32> UInventoryComponent::GetNestedContainerUIds(const TArray<int32>& InUIds)
+{
+	TArray<int32> AllUId = InUIds;
+	for (const int32&Uid:InUIds)
+	{
+		const FContainerInfo& ContainerInfo = GetContainerByUId(Uid);
+
+		for (const FItemInfoDef&ItemInfo:ContainerInfo.Items)
+		{
+			if(ItemInfo.OwnContainerUIDs.Num()<=0) continue;
+			AllUId.Append(ItemInfo.OwnContainerUIDs);
+		}
+	}
+	return AllUId;
+}
+
+bool UInventoryComponent::CanDropToSlot(const FItemInfoDef& InItemToDrop, const int32& InSourceContainerUId,
+	const int32& InTargetContainerUId, const int32& InTargetSlotId, int32& OutDropContainerUId, int32& OutDropSlotId,
+	int32& OutDropAmount, bool& OutbDropRotated)
+{
+	if(IsVendorInventory() && InItemToDrop.ItemID == TEXT("Money")) return false;
+	
+	const int32& TargetContainerIndex = GetContainerIndexByUId(InTargetContainerUId);
+	if(TargetContainerIndex == -1) return false;
+	FContainerInfo TargetContainerInfo = Containers[TargetContainerIndex];
+	
+	int32 ItemAmount;
+	//检查是否可将其添加到容器内
+	bool bAddInside = CanAddInside(InItemToDrop,InTargetContainerUId,InTargetSlotId,OutDropContainerUId,OutDropSlotId,ItemAmount,OutbDropRotated);
+	if (bAddInside)
+	{
+		OutDropAmount = InItemToDrop.ItemAmount - ItemAmount;
+		return true;
+	}
+
+	//检查是否可以堆叠
+	bool bIsStack = TryToStack(InTargetContainerUId,InTargetSlotId,InItemToDrop.ItemID,InItemToDrop.ItemAmount,ItemAmount);
+	if (bIsStack)
+	{
+		OutDropContainerUId = InTargetContainerUId;
+		OutDropSlotId = InTargetSlotId;
+		OutbDropRotated=false;
+		OutDropAmount = InItemToDrop.ItemAmount - ItemAmount;
+		return true;
+	}
+
+	if (InTargetSlotId == -1) return false;
+
+	//是不是禁止装入这个道具
+	bool bIsSupported = UInventoryLibrary::IsSlotSupported(InItemToDrop.ItemID,TargetContainerInfo.ContainerTag);
+	FInventoryItem InventoryItem;
+	UInventoryLibrary::GetDefaultIneventoryItemById(InItemToDrop.ItemID,InventoryItem);
+	bool bIsBanned = TargetContainerInfo.BannedItemType.Contains(InventoryItem.ItemType) == false;
+	if (bIsSupported == false || bIsBanned == false) return false;
+
+	FIntPoint TopLifeTile = UInventoryLibrary::IndexToTile(InTargetSlotId,TargetContainerInfo.ContainerSize);
+	FIntPoint ItemActualSize = UInventoryLibrary::RotatedSize(UInventoryLibrary::SelectSize(TargetContainerInfo.ContainerTag,InventoryItem.ItemSize),InItemToDrop.bRotated);
+	
+	for (int Row = TopLifeTile.Y;Row<TopLifeTile.Y+ItemActualSize.Y; Row++)
+	{
+		for (int Column = TopLifeTile.X;Column<TopLifeTile.X + ItemActualSize.X; Column++)
+		{
+			//格子超出去了,这个位置放不下
+			FIntPoint CurrentTile(Column,Row);
+			bool bTileValid = UInventoryLibrary::IsValidTile(CurrentTile,TargetContainerInfo.ContainerSize);
+			if (bTileValid == false)
+			{
+				OutDropContainerUId =-1;
+				OutDropSlotId = -1;
+				OutbDropRotated = false;
+				OutDropAmount = 0;
+				return false;
+			}
+
+			//在原来这个物品的占有位置上有重叠
+			const int32& CurrentSlotIndex = UInventoryLibrary::TileToIndex(CurrentTile,TargetContainerInfo.ContainerSize);
+			const FSlotInfo&CurrentSlotInfo= TargetContainerInfo.Slots[CurrentSlotIndex];
+			if(CurrentSlotInfo.ItemSlotID == -1) continue;
+			bool bIsEqual = InItemToDrop.CurrentSlotID == CurrentSlotInfo.ItemSlotID && InTargetContainerUId==InSourceContainerUId;
+			if(bIsEqual == false)
+			{
+				OutDropContainerUId =-1;
+				OutDropSlotId = -1;
+				OutbDropRotated = false;
+				OutDropAmount = 0;
+				return false;
+			}
+		}
+	}
+	
+	OutDropContainerUId =InTargetContainerUId;
+	OutDropSlotId = InTargetSlotId;
+	OutbDropRotated = InItemToDrop.bRotated;
+	OutDropAmount = InItemToDrop.ItemAmount;
+	return true;
+}
+
+bool UInventoryComponent::CanAddInside(const FItemInfoDef& InItemToAdd, const int32& InParentItemContainerUID,
+	const int32& InParentItemSlotID, int32& OutContainerUID, int32& OutSlotId, int32& OutRemainder, bool& OutbRotated)
+{
+	if (InParentItemContainerUID == -1 || InParentItemSlotID==-1)
+	{
+		return false;
+	}
+	
+	//在这搜索那个有容器的道具,比如背包/背心
+	const FContainerInfo& ParentContainer = GetContainerByUId(InParentItemContainerUID);
+	const FSlotInfo& SlotInfo= ParentContainer.Slots[InParentItemSlotID];
+	const FItemInfoDef& ParentItem= GetItemByUIdAndSlotId(InParentItemContainerUID,SlotInfo.SlotID);
+
+	//如果位置上原本的道具和当前要添加的道具是同一个
+	if(ParentItem.CurrentSlotID == InItemToAdd.CurrentSlotID) return false;
+
+	//原本的道具的默认信息,必须的有容器才能添加道具
+	FInventoryItem ParentInventoryItem;
+	UInventoryLibrary::GetDefaultIneventoryItemById(ParentItem.ItemID,ParentInventoryItem);
+	if(ParentInventoryItem.OwnInventoryData == nullptr) return false;
+
+	//要添加的道具的默认信息
+	FInventoryItem ToAddInventoryItem;
+	UInventoryLibrary::GetDefaultIneventoryItemById(InItemToAdd.ItemID,ToAddInventoryItem);
+
+	for (const int32&ContainerUid:ParentItem.OwnContainerUIDs)
+	{
+		FContainerInfo CurrentContainer = GetContainerByUId(ContainerUid);
+		
+		if (CurrentContainer.NestingRule == EContainerRule::E_OnlyEmpty)
+		{
+			//这些容器中有一个不为空吗
+			if(AreContainersEmpty(InItemToAdd.OwnContainerUIDs) == false) continue;
+		}
+		else if (CurrentContainer.NestingRule == EContainerRule::E_DontAllowNested)
+		{
+			//这个道具是有库存的
+			if (ToAddInventoryItem.OwnInventoryData) continue;
+		}
+
+		bool bEnough = EnoughSpaceOnContainer(CurrentContainer,InItemToAdd.ItemID,InItemToAdd.ItemAmount,false,true,OutSlotId,OutbRotated,OutRemainder);
+		if (bEnough)
+		{
+			OutContainerUID = CurrentContainer.ContainerUID;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool UInventoryComponent::AreContainersEmpty(const TArray<int32>& InContainerUIDs)
+{
+	for (const int32&ContainerUID:InContainerUIDs)
+	{
+		if (!GetContainerByUId(ContainerUID).Items.IsEmpty())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void UInventoryComponent::UpdateSlotWidget(const int32& InContainerUId, const int32& InSlotId,
+	const FItemInfoDef& InItemToAdd, const TArray<FContainerInfo>& InCurrentContainers, const bool& InbIsLootWidget)
+{
+	if (InbIsLootWidget)
+	{
+		UContainer* LootContainerWidget = GetLootContainerWidgetByUID(InContainerUId);
+		if (LootContainerWidget && LootContainerWidget->SlotWidgets[InSlotId])
+		{
+			LootContainerWidget->SlotWidgets[InSlotId]->UpdateItemWidget(InItemToAdd,InCurrentContainers);
+			return;
+		}
+		FString StrLog = FString::Printf(TEXT("未找到包含uid的容器部件: %d"),InContainerUId);
+		PrintDebug(StrLog);
+	}
+	
+	UContainer* ContainerWidget = GetContainerWidgetByUID(InContainerUId);
+	if (ContainerWidget)
+	{
+		if (ContainerWidget && ContainerWidget->SlotWidgets[InSlotId])
+		{
+			ContainerWidget->SlotWidgets[InSlotId]->UpdateItemWidget(InItemToAdd,InCurrentContainers);
+			return;
+		}
+	}
+	FString StrLog = FString::Printf(TEXT("未找到包含uid的容器部件: %d"),InContainerUId);
+	PrintDebug(StrLog);
+}
+
+void UInventoryComponent::RemoveItemWidget(int32 InContainerUId, int32 InSlotId,
+	TArray<FContainerInfo> InCurrentContainers, bool InbIsLootWidget)
+{
+	if (InbIsLootWidget)
+	{
+		UContainer* LootContainerWidget= GetLootContainerWidgetByUID(InContainerUId);
+		if(LootContainerWidget)
+		{
+			LootContainerWidget->SlotWidgets[InSlotId]->RemoveItemWidget();
+		}
+		return;
+	}
+
+	int32 ContainerId = GetContainerIndexByUId(InCurrentContainers,InContainerUId);
+	if (ContainerId!=-1)
+	{
+		ContainerWidgets[ContainerId]->SlotWidgets[InSlotId]->RemoveItemWidget();
+	}
+}
+
+UContainer* UInventoryComponent::GetLootContainerWidgetByUID(const int32& InContainerUID)
+{
+	for (UContainer*&LootContainer:LootContainers)
+	{
+		if(LootContainer->ContainerUId == InContainerUID)
+		{
+			return LootContainer;
+		}
+	}
+	return nullptr;
+}
+
+UContainer* UInventoryComponent::GetContainerWidgetByUID(const int32& InContainerUID)
+{
+	for (UContainer*&Container:ContainerWidgets)
+	{
+		if(Container->ContainerUId == InContainerUID)
+		{
+			return Container;
+		}
+	}
+	return nullptr;
+}
+
+void UInventoryComponent::TransferItem(UInventoryComponent* InSourceInventory, const int32& InSourceContainerUID,
+	const int32& InSourceSlotId, UInventoryComponent* InTargetInventory, const int32& InTargetContainerUID,
+	const int32& InTargetSlotID, const int32& InAmount, const bool& InbRotated)
+{
+	//lzy TODO:明日待做
+}
+
 void UInventoryComponent::Client_InitWidgets_Implementation(FClientInventoryData InClientInventoryData)
 {
 	//lzy TODO:背包UI未完成
+}
+
+void UInventoryComponent::Client_UpdateSlotWidget_Implementation(int32 InContainerUId, int32 InSlotId,
+	FItemInfoDef InItemToAdd, TArray<FContainerInfo> InCurrentContainers, bool InbIsLootWidget)
+{
+	//玩家是控制器
+	if (GetOwner()->GetOwner())
+	{
+		UpdateSlotWidget(InContainerUId,InSlotId,InItemToAdd,InCurrentContainers,InbIsLootWidget);
+	}
+}
+
+void UInventoryComponent::Client_RemoveItemWidget_Implementation(int32 InContainerUId, int32 InSlotId,
+	TArray<FContainerInfo> InCurrentContainers, bool InbIsLootWidget)
+{
+	//玩家是控制器
+	if (GetOwner()->GetOwner())
+	{
+		RemoveItemWidget(InContainerUId,InSlotId,InCurrentContainers,InbIsLootWidget);
+	}
+}
+
+void UInventoryComponent::Server_RequestTransferItem_Implementation(UInventoryComponent* InSourceInventory,
+	int32 InSourceContainerUID, int32 InSourceSlotId, UInventoryComponent* InTargetInventory,
+	int32 InTargetContainerUID, int32 InTargetSlotID, int32 InAmount, bool InbRotated)
+{
+	TransferItem(InSourceInventory,InSourceContainerUID,InSourceSlotId,InTargetInventory,InTargetContainerUID,InTargetSlotID,InAmount,InbRotated);
 }
 
 void UInventoryComponent::ServerInitInventory()
@@ -353,7 +652,21 @@ TArray<FClientInventoryData> UInventoryComponent::SetupInventory()
 
 void UInventoryComponent::HandleSelfOnSlotUpdate(int32 ContainerUId, int32 InSlotId, FItemInfoDef InItemToAdd)
 {
-	//lzy TODO:未完成
+	if (InItemToAdd.ItemID == NAME_None)
+	{
+		UpdateSlot(ContainerUId,InSlotId,InItemToAdd,false);
+	}
+}
+
+void UInventoryComponent::UpdateSlot(const int32& InContainerUId, const int32& InSlotId,
+	const FItemInfoDef& InItemToAdd, const bool& InbIsLootWidget)
+{
+	if (InItemToAdd.ItemID == NAME_None)
+	{
+		Client_RemoveItemWidget(InContainerUId,InSlotId,Containers,InbIsLootWidget);
+		return;
+	}
+	Client_UpdateSlotWidget(InContainerUId,InSlotId,InItemToAdd,Containers,InbIsLootWidget);
 }
 
 bool UInventoryComponent::FindSpace(const FName& InItemId, const int32& InAmount, int32& OutContainerUID,
@@ -530,6 +843,19 @@ int32 UInventoryComponent::GetContainerIndexByUId(const int32& InContainerId)
 	return -1;
 }
 
+int32 UInventoryComponent::GetContainerIndexByUId(const TArray<FContainerInfo>& InContainers,
+	const int32& InContainerId) const
+{
+	for (int i = 0;i<InContainers.Num();i++)
+	{
+		if (InContainers[i].ContainerUID == InContainerId)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
 int32 UInventoryComponent::GetItemIndexBySlotId(const FContainerInfo& InContainerInfo, const int32& InSlotId)
 {
 	for (int32 i = 0;i<InContainerInfo.Items.Num();i++)
@@ -550,12 +876,23 @@ FItemInfoDef UInventoryComponent::GetItemByUIdAndSlotId(const int32& InContainer
 	return ContainerInfo.Items[ItemIndex];
 }
 
+bool UInventoryComponent::IsVendorInventory() const
+{
+	return InventoryType == EInventoryType::E_Vendor;
+}
+
 void UInventoryComponent::AddColorChangedSlot(UInventorySlot* InInventorySlot)
 {
 	if (InInventorySlot)
 	{
 		ColorChangedSlots.AddUnique(InInventorySlot);
 	}
+}
+
+void UInventoryComponent::Server_RequestMoveItem_Implementation(int32 InFromContainerUId, int32 InFormSlotId,
+	int32 ToContainerUId, int32 InToSlotId, int32 InAmount, bool InbRotated)
+{
+	MoveItem(InFromContainerUId,InFormSlotId,ToContainerUId,InToSlotId,InAmount,InbRotated);
 }
 
 UEquipmentDefinition* UInventoryComponent::CreateItemData(const FName& InItemId)
@@ -671,7 +1008,7 @@ TArray<int32> UInventoryComponent::GetItemSlotIndexs(const int32& InItemContaine
 		{
 			FIntPoint CurrentTile = FIntPoint(Column,Row);
 			bool bIsValid = UInventoryLibrary::IsValidTile(CurrentTile,Containers[ContainerIndex].ContainerSize);
-			//lzy TODO:跳过还是返回?
+
 			if(!bIsValid) return TArray<int32>();
 			int32 OccupySlotIndex = UInventoryLibrary::TileToIndex(CurrentTile,Containers[ContainerIndex].ContainerSize);
 			OccupySlotIds.Add(OccupySlotIndex);

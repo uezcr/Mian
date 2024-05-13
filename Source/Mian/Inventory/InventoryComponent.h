@@ -207,7 +207,7 @@ public:
 	 * @param InbIsLootWidget		更新的是战利品widget吗?
 	 */
 	UFUNCTION(Client,Reliable,BlueprintCallable,Category="Inventory|RPC")
-	void Client_UpdateSlotWidget(int32 InContainerUId,int32 InSlotId,FItemInfoDef InItemToAdd,TArray<FContainerInfo> InCurrentContainers,bool InbIsLootWidget);
+	void Client_UpdateSlotWidget(int32 InContainerUId,int32 InSlotId,FItemInfoDef InItemToAdd,const TArray<FContainerInfo>& InCurrentContainers,bool InbIsLootWidget);
 
 	/** 删除指定容器中的道具
 	 * @param InContainerUId		容器Id 
@@ -216,7 +216,7 @@ public:
 	 * @param InbIsLootWidget		删除的是战利品widget吗?
 	 */
 	UFUNCTION(Client,Reliable,BlueprintCallable,Category="Inventory|RPC")
-	void Client_RemoveItemWidget(int32 InContainerUId,int32 InSlotId,TArray<FContainerInfo> InCurrentContainers,bool InbIsLootWidget);
+	void Client_RemoveItemWidget(int32 InContainerUId,int32 InSlotId,const TArray<FContainerInfo>& InCurrentContainers,bool InbIsLootWidget);
 
 	/** 请求转移道具
 	 * @param InSourceInventory 
@@ -427,7 +427,7 @@ private:
 	 * @param InCurrentContainers	当前拥有的Containers
 	 * @param InbIsLootWidget		删除的是战利品widget吗?
 	 */
-	void RemoveItemWidget(int32 InContainerUId,int32 InSlotId,TArray<FContainerInfo> InCurrentContainers,bool InbIsLootWidget);
+	void RemoveItemWidget(int32 InContainerUId,int32 InSlotId, const TArray<FContainerInfo>& InCurrentContainers,bool InbIsLootWidget);
 	
 	/** 根据容器Id获取战利品容器(LootContainers)里的Widget
 	 * @param InContainerUID	容器Id

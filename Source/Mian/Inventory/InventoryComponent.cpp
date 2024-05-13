@@ -504,12 +504,11 @@ void UInventoryComponent::UpdateSlotWidget(const int32& InContainerUId, const in
 			LootContainerWidget->SlotWidgets[InSlotId]->UpdateItemWidget(InItemToAdd,InCurrentContainers);
 			return;
 		}
-		FString StrLog = FString::Printf(TEXT("未找到包含uid的容器部件: %d"),InContainerUId);
+		const FString StrLog = FString::Printf(TEXT("未找到包含uid的容器部件: %d"),InContainerUId);
 		PrintDebug(StrLog);
 	}
-	
-	UContainer* ContainerWidget = GetContainerWidgetByUID(InContainerUId);
-	if (ContainerWidget)
+
+	if (UContainer* ContainerWidget = GetContainerWidgetByUID(InContainerUId))
 	{
 		if (ContainerWidget && ContainerWidget->SlotWidgets[InSlotId])
 		{
@@ -517,24 +516,23 @@ void UInventoryComponent::UpdateSlotWidget(const int32& InContainerUId, const in
 			return;
 		}
 	}
-	FString StrLog = FString::Printf(TEXT("未找到包含uid的容器部件: %d"),InContainerUId);
+	const FString StrLog = FString::Printf(TEXT("未找到包含uid的容器部件: %d"),InContainerUId);
 	PrintDebug(StrLog);
 }
 
 void UInventoryComponent::RemoveItemWidget(int32 InContainerUId, int32 InSlotId,
-	TArray<FContainerInfo> InCurrentContainers, bool InbIsLootWidget)
+                                           const TArray<FContainerInfo>& InCurrentContainers, bool InbIsLootWidget)
 {
 	if (InbIsLootWidget)
 	{
-		UContainer* LootContainerWidget= GetLootContainerWidgetByUID(InContainerUId);
-		if(LootContainerWidget)
+		if(UContainer* LootContainerWidget= GetLootContainerWidgetByUID(InContainerUId))
 		{
 			LootContainerWidget->SlotWidgets[InSlotId]->RemoveItemWidget();
 		}
 		return;
 	}
 
-	int32 ContainerId = GetContainerIndexByUId(InCurrentContainers,InContainerUId);
+	const int32 ContainerId = GetContainerIndexByUId(InCurrentContainers,InContainerUId);
 	if (ContainerId!=-1)
 	{
 		ContainerWidgets[ContainerId]->SlotWidgets[InSlotId]->RemoveItemWidget();
@@ -577,18 +575,15 @@ void UInventoryComponent::Client_InitWidgets_Implementation(FClientInventoryData
 	//lzy TODO:背包UI未完成
 }
 
-void UInventoryComponent::Client_UpdateSlotWidget_Implementation(int32 InContainerUId, int32 InSlotId,
-	FItemInfoDef InItemToAdd, TArray<FContainerInfo> InCurrentContainers, bool InbIsLootWidget)
+void UInventoryComponent::Server_RequestTransferItem_Implementation(UInventoryComponent* InSourceInventory,
+	int32 InSourceContainerUID, int32 InSourceSlotId, UInventoryComponent* InTargetInventory,
+	int32 InTargetContainerUID, int32 InTargetSlotID, int32 InAmount, bool InbRotated)
 {
-	//玩家是控制器
-	if (GetOwner()->GetOwner())
-	{
-		UpdateSlotWidget(InContainerUId,InSlotId,InItemToAdd,InCurrentContainers,InbIsLootWidget);
-	}
+	TransferItem(InSourceInventory,InSourceContainerUID,InSourceSlotId,InTargetInventory,InTargetContainerUID,InTargetSlotID,InAmount,InbRotated);
 }
 
 void UInventoryComponent::Client_RemoveItemWidget_Implementation(int32 InContainerUId, int32 InSlotId,
-	TArray<FContainerInfo> InCurrentContainers, bool InbIsLootWidget)
+	const TArray<FContainerInfo>& InCurrentContainers, bool InbIsLootWidget)
 {
 	//玩家是控制器
 	if (GetOwner()->GetOwner())
@@ -597,11 +592,14 @@ void UInventoryComponent::Client_RemoveItemWidget_Implementation(int32 InContain
 	}
 }
 
-void UInventoryComponent::Server_RequestTransferItem_Implementation(UInventoryComponent* InSourceInventory,
-	int32 InSourceContainerUID, int32 InSourceSlotId, UInventoryComponent* InTargetInventory,
-	int32 InTargetContainerUID, int32 InTargetSlotID, int32 InAmount, bool InbRotated)
+void UInventoryComponent::Client_UpdateSlotWidget_Implementation(int32 InContainerUId, int32 InSlotId,
+	FItemInfoDef InItemToAdd, const TArray<FContainerInfo>& InCurrentContainers, bool InbIsLootWidget)
 {
-	TransferItem(InSourceInventory,InSourceContainerUID,InSourceSlotId,InTargetInventory,InTargetContainerUID,InTargetSlotID,InAmount,InbRotated);
+	//玩家是控制器
+	if (GetOwner()->GetOwner())
+	{
+		UpdateSlotWidget(InContainerUId,InSlotId,InItemToAdd,InCurrentContainers,InbIsLootWidget);
+	}
 }
 
 void UInventoryComponent::ServerInitInventory()

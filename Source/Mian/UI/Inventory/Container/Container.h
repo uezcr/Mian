@@ -105,4 +105,8 @@ public:
 	/*生成Slot信息*/
 	UFUNCTION(BlueprintCallable,Category="Container")
 	TArray<FSlotInfo> GenerateSlotInfos();
+
+	/*更新所有Slot信息*/
+	UFUNCTION(BlueprintCallable,Category="Container")
+	void UpdateSlotsWidget();
 };

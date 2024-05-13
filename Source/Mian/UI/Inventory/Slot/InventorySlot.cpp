@@ -12,8 +12,10 @@
 #include "Components/SizeBox.h"
 #include "Inventory/InventoryComponent.h"
 #include "Inventory/InventoryLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Sound/SoundCue.h"
 #include "UI/Inventory/Container/Container.h"
 #include "UI/Inventory/Container/MovableWindow.h"
 #include "UI/Inventory/Drag/DragInventoryItem.h"
@@ -132,9 +134,36 @@ void UInventorySlot::RemoveItemWidget()
 	}
 }
 
-void UInventorySlot::SlotDropEvent()
+void UInventorySlot::SlotDropEvent(const int32& InAmountForAction, UDragInventoryItem* InOperation)
 {
-	//lzy TODO:明日待办
+	//结束时移动道具
+	UInventoryComponent*SourceInventoryComponent =  InOperation->GetSourceInventory();
+	int32 OutContainerUId,OutSlotId;
+	InOperation->GetSource(OutContainerUId,OutSlotId);
+	const bool bIsRotated = InOperation->DraggingItem->IsRotated();
+	const bool bIsLocalComponent = UInventoryLibrary::IsSelfInventory(GetWorld(),SourceInventoryComponent) && UInventoryLibrary::IsSelfInventory(GetWorld(),Container->InventoryComponent);
+	if (bIsLocalComponent)
+	{
+		//如果是在玩家自己的组件中移动
+		Container->InventoryComponent->Server_RequestMoveItem(OutContainerUId,OutSlotId,ParentContainerUID,DropSlotID,InAmountForAction,bIsRotated);
+	}else
+	{
+		//两个不同的组件之间移动
+		UInventoryComponent*LocalPlayerInventoryComponent = UInventoryLibrary::GetLocalPlayerInventoryComponent(GetWorld());
+		if (LocalPlayerInventoryComponent)
+		{
+			LocalPlayerInventoryComponent->Server_RequestTransferItem(SourceInventoryComponent,OutContainerUId,OutSlotId,
+				Container->InventoryComponent,ParentContainerUID,DropSlotID,InAmountForAction,bIsRotated);
+		}
+	}
+	
+	DropSlotID = -1;
+	FInventoryItem DropItemDefault;
+	UInventoryLibrary::GetDefaultIneventoryItemById(InOperation->DraggingItem->GetItemInfo().ItemID,DropItemDefault);
+	if (DropItemDefault.DragEndingSound)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(),DropItemDefault.DragEndingSound);
+	}
 }
 
 void UInventorySlot::UpdateItemWidget(const FItemInfoDef& InItemInfoDef, TArray<FContainerInfo> InContainers)

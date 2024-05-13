@@ -91,5 +91,8 @@ public:
 	/*获取储存图片的SizeBox*/
 	UFUNCTION(BlueprintPure,Category="InventoryItemShow")
 	FORCEINLINE USizeBox* GetSizeBoxItem()const {return Size_Item;};
-	
+
+	/*道具旋转了？吗*/
+	UFUNCTION(BlueprintPure,Category="InventoryItemShow")
+	FORCEINLINE bool IsRotated()const {return Item.bRotated;};
 };

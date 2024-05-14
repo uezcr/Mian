@@ -14,7 +14,7 @@ struct FFrame;
 struct FGameplayTag;
 
 UCLASS()
-class MIAN_API AMPlayerState : public AModularPlayerState, public IAbilitySystemInterface
+class MIAN_API AMPlayerState : public AModularPlayerState
 {
 	GENERATED_BODY()
 
@@ -23,13 +23,4 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Mian|PlayerState")
 	AMPlayerController* GetMPlayerController() const;
-	UFUNCTION(BlueprintCallable, Category = "Mian|PlayerState")
-	UMAbilitySystemComponent* GetMAbilitySystemComponent() const { return AbilitySystemComponent; }
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-
-private:
-	
-	UPROPERTY(VisibleAnywhere, Category = "Mian|PlayerState")
-	TObjectPtr<UMAbilitySystemComponent> AbilitySystemComponent;
-	
 };

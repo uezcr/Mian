@@ -4,6 +4,8 @@
 #include "Camera/MCameraMode.h"
 #include "EnhancedInputSubsystems.h"
 #include "MGameplayTags.h"
+#include "MPlayerCharacter.h"
+#include "AbilitySystem/MAbilitySystemComponent.h"
 #include "Input/MInputComponent.h"
 #include "Player/MLocalPlayer.h"
 #include "Player/MPlayerController.h"
@@ -116,13 +118,35 @@ void UMPlayerComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 			// This is where we actually bind and input action to a gameplay tag, which means that Gameplay Ability Blueprints will
 			// be triggered directly by these input actions Triggered events. 
 			TArray<uint32> BindHandles;
-			//TODO TouIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, /*out*/ BindHandles);
+			TouIC->BindAbilityActions(DefaultInputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, /*out*/ BindHandles);
 
 			TouIC->BindNativeAction(DefaultInputConfig, MGameplayTags::InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move, /*bLogIfNotFound=*/ false);
 			TouIC->BindNativeAction(DefaultInputConfig, MGameplayTags::InputTag_Look_Mouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse, /*bLogIfNotFound=*/ false);
 			TouIC->BindNativeAction(DefaultInputConfig, MGameplayTags::InputTag_Look_Stick, ETriggerEvent::Triggered, this, &ThisClass::Input_LookStick, /*bLogIfNotFound=*/ false);
 			TouIC->BindNativeAction(DefaultInputConfig, MGameplayTags::InputTag_Crouch, ETriggerEvent::Triggered, this, &ThisClass::Input_Crouch, /*bLogIfNotFound=*/ false);
 		}
+	}
+}
+
+void UMPlayerComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag)
+{
+	if (const AMPlayerCharacter* Player = GetPawn<AMPlayerCharacter>())
+	{
+		if (UMAbilitySystemComponent* TouASC = Player->GetMAbilitySystemComponent())
+		{
+			TouASC->AbilityInputTagPressed(InputTag);
+		}	
+	}
+}
+
+void UMPlayerComponent::Input_AbilityInputTagReleased(FGameplayTag InputTag)
+{
+	if (const AMPlayerCharacter* Player = GetPawn<AMPlayerCharacter>())
+	{
+		if (UMAbilitySystemComponent* TouASC = Player->GetMAbilitySystemComponent())
+		{
+			TouASC->AbilityInputTagReleased(InputTag);
+		}	
 	}
 }
 

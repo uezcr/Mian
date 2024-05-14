@@ -9,18 +9,10 @@
 AMPlayerState::AMPlayerState(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	AbilitySystemComponent = ObjectInitializer.CreateDefaultSubobject<UMAbilitySystemComponent>(this, TEXT("AbilitySystemComponent"));
-	AbilitySystemComponent->SetIsReplicated(true);
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 }
 
 AMPlayerController* AMPlayerState::GetMPlayerController() const
 {
 	return Cast<AMPlayerController>(GetOwner());
-}
-
-UAbilitySystemComponent* AMPlayerState::GetAbilitySystemComponent() const
-{
-	return GetMAbilitySystemComponent();
 }
 

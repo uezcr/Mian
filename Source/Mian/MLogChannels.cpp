@@ -2,6 +2,7 @@
 #include "GameFramework/Actor.h"
 
 DEFINE_LOG_CATEGORY(LogMian);
+DEFINE_LOG_CATEGORY(LogMianCombat);
 DEFINE_LOG_CATEGORY(LogMianExperience);
 DEFINE_LOG_CATEGORY(LogMianAbilitySystem);
 DEFINE_LOG_CATEGORY(LogMianTeams);
